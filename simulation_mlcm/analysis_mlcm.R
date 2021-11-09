@@ -1,5 +1,9 @@
 #### MLCM analysis
-analyzemlcm <- function(rootname) {
+#analyzemlcm <- function(rootname, modeltype="full") {
+
+rootname <- 'sim_mlcm'
+modeltype="full"
+
     library('MLCM')
     source("pboot.mlcm.R")
 
@@ -10,7 +14,7 @@ analyzemlcm <- function(rootname) {
   
 
     ### estimating the scales
-    bg.full <- mlcm(df1, model = "full", method='glm.fit', lnk='probit', control=glm.control(epsilon=1e-4))
+    bg.full <- mlcm(df1, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=1e-4))
     print(bg.full)
     # scale values are:
     bg.scales <- bg.full$pscale
@@ -43,10 +47,10 @@ analyzemlcm <- function(rootname) {
     # upper bound:
     #print(bg.high)
 
-    save(bg.full, bg.full.boot, bg.scales, bg.low, bg.high, file=paste(rootname, '.glm.MLCM', sep = ""))
+    save(bg.full, bg.full.boot, bg.scales, bg.low, bg.high, file=paste(rootname, '_', modeltype, '.glm.MLCM', sep = ""))
     print('Done')
 
-}
+#}
 
 
 # EOF
