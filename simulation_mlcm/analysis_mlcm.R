@@ -21,7 +21,7 @@ source("pboot.mlcm.R")
 # to work. Alternatively one would have to try another optimization algorithm
 # more robust to local minima. G.A. 
 # # default is epsilon = 1e-14. 
-epsilon <- 1e-4  
+epsilon <- 1e-4 
 
 df <- read.csv(paste(rootname, '.csv', sep = ""), sep = ',')
 keeps <- c("Resp", "L1", "L2", "C1", "C2")
