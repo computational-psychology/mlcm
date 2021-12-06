@@ -1,5 +1,5 @@
 #### MLCM analysis
-analyzemlcm <- function(rootname, modeltype="full", do_bootstrap=FALSE) {
+analyzemlcm <- function(rootname, modeltype="full", do_bootstrap=FALSE, nsim=1000, fr=FALSE, thr=2.5) {
 
 #rootname <- 'sim_mlcm'
 #modeltype <- "add"
@@ -33,7 +33,25 @@ print(nrow(df1))
 obs <- mlcm(df1, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
 print(obs)
 
-#plot(bg.full, type='b')
+plot(obs, type='b')
+
+# refiting by filtering trials with high residuals. take the high residuals of the full model
+if (fr) {
+  
+  # if we're calculating the additive model, we get the outliers from the residuals of the full model. 
+  # thus we need to quicky fit the full model first....
+  if (modeltype == 'add'){
+    obs <- mlcm(df1, model = 'full', method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+  }
+  
+  # thr is arbitrary, thr = 2.5 in the book and in our previous work
+  y <- df1[((residuals(obs$obj) > -thr) & (residuals(obs$obj) < thr)), ]
+  print(paste('dataset reduced to -> ', nrow(y), sep=""))
+
+  obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+  suffix <- '.fr.glm.MLCM'
+} 
+
 
 # scale values are:
 obs.scales <- obs$pscale
@@ -50,7 +68,7 @@ if(do_bootstrap){
   print('bootstrapping the model to calculate confidence intervals')
   
   # we first bootstrap the model
-  obs.boot <- pboot.mlcm(obs, nsim=1000, workers=workers, master=master, control=glm.control(epsilon=epsilon))
+  obs.boot <- pboot.mlcm(obs, nsim=nsim, workers=workers, master=master, control=glm.control(epsilon=epsilon))
   
   ## here  we manually calculate the percentile confidence intervals from the bootstrap samples
   # with 95 % confidence
@@ -67,7 +85,7 @@ if(do_bootstrap){
     
     context1 <- samples[1:nrow(samples)-1,]
     
-    context2 <- rbind(rep(0, 1000), samples[1:nrow(samples)-1,]) + additiveshift
+    context2 <- rbind(rep(0, nsim), samples[1:nrow(samples)-1,]) + additiveshift
     
     samples <- rbind(context1, context2)
   

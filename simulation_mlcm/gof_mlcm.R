@@ -1,5 +1,5 @@
 #### MLCM analysis
-gof_mlcm <- function(rootname, modeltype="full") {
+gof_mlcm <- function(rootname, modeltype="full", fr=FALSE) {
 
 #rootname <- 'sim_mlcm'
 #modeltype <- "add"
@@ -31,6 +31,11 @@ rootname = paste(rootname, '_', modeltype, sep = "")
 
 suffix <- '.glm.MLCM'
 suffixsave <- '.glm.diags.MLCM'
+
+if(fr){
+   suffix <- paste('.fr', suffix, sep="")
+   suffixsave <- paste('.fr', suffixsave, sep="")
+}
 
 file2read <- paste(rootname, suffix, sep = "")
 file2save <- paste(rootname, suffixsave, sep = "")
