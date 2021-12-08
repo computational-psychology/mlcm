@@ -51,6 +51,9 @@ if (fr) {
   obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
   suffix <- '.fr.glm.MLCM'
 } 
+else{
+  suffix <- '.glm.MLCM'
+}
 
 
 # scale values are:
@@ -110,10 +113,10 @@ if(do_bootstrap){
   # upper bound:
   #print(bg.high)
   
-  save(obs, obs.boot, obs.scales, obs.low, obs.high, file=paste(rootname, '_', modeltype, '.glm.MLCM', sep = ""))
+  save(obs, obs.boot, obs.scales, obs.low, obs.high, file=paste(rootname, '_', modeltype, suffix, sep = ""))
 
 }else{
-  save(obs, obs.scales, file=paste(rootname, '_', modeltype, '.glm.MLCM', sep = ""))
+  save(obs, obs.scales, file=paste(rootname, '_', modeltype, suffix, sep = ""))
 
 }
 
