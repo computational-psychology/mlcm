@@ -33,7 +33,7 @@ print(nrow(df1))
 obs <- mlcm(df1, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
 print(obs)
 
-plot(obs, type='b')
+#plot(obs, type='b')
 
 # refiting by filtering trials with high residuals. take the high residuals of the full model
 if (fr) {
