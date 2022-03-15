@@ -20,7 +20,7 @@ name = 'ga6'
 
 # %% MLCM results
 ### loading raw file.
-d = pd.read_csv("parsed_results/%s_reindexed_full.csv" % name)
+d = pd.read_csv("../data/parsed_results/%s_reindexed_full.csv" % name)
 
 # luminances
 lums = pd.concat((d['lum1'], d['lum2'])).unique()
@@ -66,7 +66,7 @@ for i in range(20):
 plt.figure(figsize=(25, 20))
 sns.heatmap(data, mask=mask, annot=True, xticklabels=stimlist, yticklabels=stimlist)
 plt.title('%s - N per cell = %d' % (name, Ns.max()))
-plt.savefig('figs/%s_resp_matrix.pdf' % name)
+plt.savefig('../figs/%s_resp_matrix.pdf' % name)
 
 
 

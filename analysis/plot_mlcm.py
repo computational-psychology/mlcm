@@ -97,7 +97,7 @@ g.set_titles(col_template='{col_name}')
 
 labelnorm = 'normalized' if normalized else 'unnormalized'
 labelfr = 'wo_outliers' if frs is not None else 'alltrials'
-g.savefig('figs/%s_%s_%s_%s_%s.pdf' % (savename, modeltype, method, labelnorm, labelfr))
+g.savefig('../figs/%s_%s_%s_%s_%s.pdf' % (savename, modeltype, method, labelnorm, labelfr))
 
 
 
