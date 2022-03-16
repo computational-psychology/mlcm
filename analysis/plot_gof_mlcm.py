@@ -26,24 +26,34 @@ sns.set_context('talk')
 #matplotlib.rcParams['font.sans-serif'] = ['Arial']
 #matplotlib.rcParams['font.family'] = 'sans-serif'
 
-names = ['ga']
-frs = [True]
+names = ['ga6', 'dk', 'jxv2', 'lxs', 'mm']
+frs = None # None or frs
 
-method = 'brglm' # glm method used for fitting in R, either 'glm' (normal method) or 'brglm' (bias reduced glm)
+method = 'glm' # glm method used for fitting in R, either 'glm' (normal method) or 'brglm' (bias reduced glm)
 
+modeltype = 'full'
 
 for s, name in enumerate(names):
   
     
-    ### loading R file and loading R objects into python variables
-    if frs[s]:
-        fname = "parsed_results/%s_reindexed.fr.%s.diags.MLCM" % (name,method)
+      ### loading R file and loading R objects into python variables
+    try:
+        f = frs[name]
+        loadreduced = True
+    except:
+        loadreduced = False
+        
+
+    if loadreduced:
+        fname = "../data/parsed_results/%s_reindexed_%s.fr.%s.diags.MLCM" % (name, modeltype, method)
     else:
-        fname = "parsed_results/%s_reindexed.%s.diags.MLCM" % (name, method)
+        fname = "../data/parsed_results/%s_reindexed_%s.%s.diags.MLCM" % (name, modeltype, method)
+    print(fname)
+    
     objs = robjects.r['load'](fname)
     
           
-    diagnostics = robjects.r['bg.diags']
+    diagnostics = robjects.r['obs.diags']
     
     #prob = list(diagnostics[diagnostics.names.index('p')])[0]
     prob = robjects.r['p'][0]
@@ -117,7 +127,7 @@ for s, name in enumerate(names):
     
     plt.suptitle('percentage: %.2f // p-value: %.3f' % (per, prob))
     
-    plt.savefig("figs/gof/%s_reindexed.fr.%s.diags.MLCM.py.pdf" % (name, method))
+    plt.savefig("../figs/gof/%s_reindexed.fr.%s.diags.MLCM.py.pdf" % (name, method))
     #plt.close()
 
             
