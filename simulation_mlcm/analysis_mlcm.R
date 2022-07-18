@@ -20,7 +20,7 @@ source("pboot.mlcm.R")
 # to a value that does not give those results. It's a hack but it seems
 # to work. Alternatively one would have to try another optimization algorithm
 # more robust to local minima. G.A. 
-# # default is epsilon = 1e-14. 
+# # default is epsilon = 1e-8. 
 epsilon <- 1e-4 
 
 df <- read.csv(paste(rootname, '.csv', sep = ""), sep = ',')

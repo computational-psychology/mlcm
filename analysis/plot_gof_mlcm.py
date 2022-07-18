@@ -17,6 +17,8 @@ import matplotlib.pylab as plt
 import matplotlib
 import sys
 import rpy2.robjects as robjects
+from utils import frs
+
 
 sns.set_style("ticks", {'xtick.direction': 'in', 'ytick.direction': 'in',
                         "xtick.major.size": 2, "ytick.major.size": 2})
@@ -46,8 +48,10 @@ for s, name in enumerate(names):
 
     if loadreduced:
         fname = "../data/parsed_results/%s_reindexed_%s.fr.%s.diags.MLCM" % (name, modeltype, method)
+        suffix = '.fr.'
     else:
         fname = "../data/parsed_results/%s_reindexed_%s.%s.diags.MLCM" % (name, modeltype, method)
+        suffix = '.'
     print(fname)
     
     objs = robjects.r['load'](fname)
@@ -127,7 +131,7 @@ for s, name in enumerate(names):
     
     plt.suptitle('percentage: %.2f // p-value: %.3f' % (per, prob))
     
-    plt.savefig("../figs/gof/%s_reindexed.fr.%s.diags.MLCM.py.pdf" % (name, method))
+    plt.savefig("../figs/gof/%s_reindexed%s%s.diags.MLCM.pdf" % (name, suffix, method))
     #plt.close()
 
             
