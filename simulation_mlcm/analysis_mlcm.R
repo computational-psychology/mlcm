@@ -114,6 +114,7 @@ if(do_bootstrap){
   #print(bg.high)
   
   save(obs, obs.boot, obs.scales, obs.low, obs.high, samples, file=paste(rootname, '_', modeltype, suffix, sep = ""))
+  print(paste('saving in..', rootname, '_', modeltype, suffix, sep = ""))
 
 }else{
   save(obs, obs.scales, file=paste(rootname, '_', modeltype, suffix, sep = ""))

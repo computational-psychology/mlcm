@@ -4,8 +4,12 @@
 setwd("~/git/white_scaling/analysis")
 # options(warn=1)
 
-observers <- list('ga', 'ga2', 'jxv', 'ga3', 'ga4','ga5','dk','ga6','jxv2','lxs', 'mm')
-#observers <- list('mm')
+#observers <- list('dk','ga6','jxv2','lxs', 'mm')
+#thr <- 2.5 # default in simulations
+#observers <- list('aa')
+#thr <- 2.15
+observers <- list('js')
+thr <- 2.0
 
 calculateCI = TRUE  # if true, calculated CI using bootstrap. it takes some time
 
@@ -25,8 +29,8 @@ for (obsname in observers){
    comparemodels(rootname)
    
    print('********** removing some outliers *****************')
-   analyzemlcm(rootname, 'add', do_bootstrap=calculateCI , nsim=nsim, fr=TRUE)
-   analyzemlcm(rootname, 'full', do_bootstrap=calculateCI , nsim=nsim, fr=TRUE)
+   analyzemlcm(rootname, 'add', do_bootstrap=calculateCI , nsim=nsim, fr=TRUE, thr=thr)
+   analyzemlcm(rootname, 'full', do_bootstrap=calculateCI , nsim=nsim, fr=TRUE, thr=thr)
    
    comparemodels(rootname)
    
