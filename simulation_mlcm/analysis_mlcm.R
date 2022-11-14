@@ -1,9 +1,6 @@
 #### MLCM analysis
 analyzemlcm <- function(rootname, modeltype="full", do_bootstrap=FALSE, nsim=1000, fr=FALSE, thr=2.5) {
 
-#rootname <- 'sim_mlcm'
-#modeltype <- "add"
-
 library(MLCM)
 library(snow)
 ncores <- 4
@@ -11,6 +8,8 @@ workers <- replicate(ncores, "localhost")
 master <- "localhost"
 
 source("pboot.mlcm.R")
+source('gofutils.R')
+source("pbinom.diagnostics.mlcm.R")
 
 # epsilon is the resolution given to the optimization routine. At a difference
 # of epsilon is where the algorithm stops. We have issues with the default
@@ -44,11 +43,68 @@ if (fr) {
     obs <- mlcm(df1, model = 'full', method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
   }
   
-  # thr is arbitrary, thr = 2.5 in the book and in our previous work
-  y <- df1[((residuals(obs$obj) > -thr) & (residuals(obs$obj) < thr)), ]
-  print(paste('dataset reduced to -> ', nrow(y), sep=""))
-
-  obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+  if (is.numeric(thr)){
+    # thr is arbitrary, thr = 2.5 in the book and in our previous work
+    y <- df1[((residuals(obs$obj) > -thr) & (residuals(obs$obj) < thr)), ]
+    print(paste('dataset reduced to -> ', nrow(y), sep=""))
+  
+    obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+    
+  } else{
+    # we get the vector of residuals (deviance residual)
+    res <- residuals(obs$obj)
+    s <- sort(abs(res), decreasing=TRUE, index.return=TRUE) # return sorted value AND index
+    
+    # first 10 indices with highest deviance residuals 
+    #res[s$ix[1:10]]
+    
+    finished <- FALSE
+    start <- 1
+    while(!finished){
+      
+      # select first trials
+      y <- df1[sort(s$ix[start:nrow(df1)]), ]
+      
+      removed <- df1[s$ix[1:start-1],]
+      write.csv(removed, paste(rootname, '_removed.csv', sep = ""))
+      
+      print(paste('dataset reduced to -> ', nrow(y), sep=""))
+      print(paste('removed -> ', nrow(removed), sep=""))
+      
+      obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+      
+      # evaluate GoF
+      obs.diags <- pbinom.diagnostics(obs, nsim=1000, workers=workers, master=master,
+                                      control=glm.control(epsilon=1e-4))
+      
+      #plot(obs.diags)
+      
+      
+      # print the statistics
+      per <- evaluateResiduals(obs.diags)
+      p <- obs.diags$p
+      print(paste('Percentage inside envelope CDF deviance residuals: ', per, sep=""))
+      print(paste('P-value of number of runs histogram: ', p, sep=""))
+      print(obs.diags$ObsRuns)
+      
+      # if p-val <0.05 then take one trial less (start +=1)
+      if (p<0.05){
+        print('eliminating one trial more... ')
+        start <- start +1
+      } else{ # if p-val >=0.05, break out of loop
+        print('breaking loop')
+        finished <- TRUE
+      }
+      
+      # saving GOF data in diags.MLCM
+      rootname2 = paste(rootname, '_', modeltype, sep = "")
+      suffixsave <- '.fr.glm.diags.MLCM'
+      file2save <- paste(rootname2, suffixsave, sep = "")
+      save(obs.diags, per, p, file=file2save)
+      
+    }
+    
+  }
   suffix <- '.fr.glm.MLCM'
 } 
 else{

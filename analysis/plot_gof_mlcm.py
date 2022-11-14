@@ -39,12 +39,7 @@ for s, name in enumerate(names):
   
     
       ### loading R file and loading R objects into python variables
-    try:
-        f = frs[name]
-        loadreduced = True
-    except:
-        loadreduced = False
-        
+    loadreduced = frs[name]      
 
     if loadreduced:
         fname = "../data/parsed_results/%s_reindexed_%s.fr.%s.diags.MLCM" % (name, modeltype, method)

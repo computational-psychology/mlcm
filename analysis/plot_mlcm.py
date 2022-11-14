@@ -56,31 +56,34 @@ else:
 # %%
 ylim= (-0.1,1.1) if normalized else None
 
-g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=False, margin_titles=True,
-                  legend_out=True, height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
+g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=False,
+                  margin_titles=True, col_wrap=4, legend_out=True, 
+                  height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
 g.map(plt.scatter, 'luminance_cdm2', 'scale')
 
 
 if plotCI:
     for i, col in enumerate(g.col_names):
+        #print(col)
         for z, c in enumerate(['on white', 'on black']):
             
             # gets and plots errorbars
             curr = ALL[(ALL['observer']==col) & (ALL['carrier']==c)]
+            #print(curr['scale'].values[-2])
             yerr = [curr['scale'] - curr['CIl'], curr['CIh'] - curr['scale']]
             
-            g.axes[0][i].errorbar(curr['luminance_cdm2'], curr['scale'], yerr=yerr, fmt='none',
-                  ecolor=palette[c], capsize=0)
+            g.axes[i].errorbar(curr['luminance_cdm2'], curr['scale'], yerr=yerr, 
+                               fmt='none', ecolor=palette[c], capsize=0)
             
-            yl = g.axes[0][i].get_ylim()
+            yl = g.axes[i].get_ylim()
             # plots vertical lines for carriers' luminance
-            g.axes[0][i].vlines(x=low_lum_cdm2, 
+            g.axes[i].vlines(x=low_lum_cdm2, 
                                 ymin=yl[0], 
                                 ymax=yl[1],  
                                 color='#636363',
                                 linestyles='dotted')
             
-            g.axes[0][i].vlines(x=high_lum_cdm2, 
+            g.axes[i].vlines(x=high_lum_cdm2, 
                                 ymin=yl[0], 
                                 ymax=yl[1],  
                                 color='#636363',
@@ -91,12 +94,12 @@ if plotCI:
             #                             ymin=yl[0], 
             #                             ymax=yl[1],  
             #                             color='#000000')
-    
+        
 g.add_legend()
 g.set_titles(col_template='{col_name}')
 
 labelnorm = 'normalized' if normalized else 'unnormalized'
-labelfr = 'wo_outliers' if frs is not None else 'alltrials'
+labelfr = 'wo_outliers' if any(list(frs.values())) else 'alltrials'
 g.savefig('../figs/%s_%s_%s_%s_%s.pdf' % (savename, modeltype, method, labelnorm, labelfr))
 
 
