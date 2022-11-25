@@ -56,7 +56,7 @@ else:
 # %%
 ylim= (-0.1,1.1) if normalized else None
 
-g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=False,
+g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=True,
                   margin_titles=True, col_wrap=4, legend_out=True, 
                   height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
 g.map(plt.scatter, 'luminance_cdm2', 'scale')
@@ -97,6 +97,9 @@ if plotCI:
         
 g.add_legend()
 g.set_titles(col_template='{col_name}')
+g.set_ylabels('Perceptual scale')
+g.set_xlabels('Luminance [cd/m²]')
+
 
 labelnorm = 'normalized' if normalized else 'unnormalized'
 labelfr = 'wo_outliers' if any(list(frs.values())) else 'alltrials'

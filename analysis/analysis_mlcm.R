@@ -29,8 +29,6 @@ for (obsname in observers){
    print('******* finding outliers and removing according to GoF *************')
    analyzemlcm(rootname, 'full', do_bootstrap=calculateCI , nsim=nsim, fr=TRUE, thr=thr)
    
-   comparemodels(rootname)
-   
    
    print('*******************************************')
    
