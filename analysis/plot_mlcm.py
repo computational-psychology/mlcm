@@ -65,7 +65,7 @@ g.map(plt.scatter, 'luminance_cdm2', 'scale')
 if plotCI:
     for i, col in enumerate(g.col_names):
         #print(col)
-        for z, c in enumerate(['on white', 'on black']):
+        for z, c in enumerate(['in white', 'in black']):
             
             # gets and plots errorbars
             curr = ALL[(ALL['observer']==col) & (ALL['carrier']==c)]
