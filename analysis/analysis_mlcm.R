@@ -4,7 +4,8 @@
 setwd("~/git/white_scaling/analysis")
 # options(warn=1)
 
-#observers <- list('dk','ga6','jxv2','lxs', 'mm')
+#observers <- list('dk', 'ga6', 'jxv2', 'lxs', 'mm', 'pe', 'aa', 'js', 'xz')
+observers <- list('lys')
 thr <- 'auto'
 #observers <- list('aa')
 #thr <- 2.15

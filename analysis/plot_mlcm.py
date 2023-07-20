@@ -24,9 +24,12 @@ matplotlib.rcParams['font.family'] = 'sans-serif'
 plotCI = True
 method = 'glm' # glm method used for fitting in R, either 'glm' (normal method) or 'brglm' (bias reduced glm)
 
-#names = ['jxv', 'ga3', 'ga4', 'dk', 'ga6', 'lxs']
-names = ['ga6', 'dk', 'jxv2', 'lxs', 'mm']
-frs = None # None or frs
+# Partiicpants reported in manuscript 
+#names = ['ga6', 'jxv2', 'lxs', 'mm', 'pe', 'aa', 'js', 'sz']
+
+# participants who also came afterwards
+names = ['lys']
+#frs = {n:False for n in names} # None (all data), or uncomment for data with outliers removed
 
 modeltype = 'full'
 meansamples = True
@@ -49,15 +52,17 @@ ALL, low_lum_cdm2, high_lum_cdm2 = read_data_mlcm(names,
 # %% 
 if len(names)>1:
     savename = 'all'
+    col_wrap = 4
 else:
     savename = '%s' % names[0]
+    col_wrap = 1
 
 
 # %%
 ylim= (-0.1,1.1) if normalized else None
 
 g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=True,
-                  margin_titles=True, col_wrap=4, legend_out=True, 
+                  margin_titles=True, col_wrap=1, legend_out=True, 
                   height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
 g.map(plt.scatter, 'luminance_cdm2', 'scale')
 
