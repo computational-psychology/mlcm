@@ -25,18 +25,15 @@ plotCI = True
 method = 'glm' # glm method used for fitting in R, either 'glm' (normal method) or 'brglm' (bias reduced glm)
 
 # Partiicpants reported in manuscript 
-#names = ['ga6', 'jxv2', 'lxs', 'mm', 'pe', 'aa', 'js', 'sz']
+names = ['ga6', 'jxv2', 'lxs', 'mm', 'pe', 'aa', 'js', 'sz']
 
 # participants who also came afterwards
-names = ['lys']
+#names = ['lys']
 #frs = {n:False for n in names} # None (all data), or uncomment for data with outliers removed
 
 modeltype = 'full'
 meansamples = True
 normalized = True
-
-plotnewlum = False
-#newluminances = np.array([0.01, 0.035, 0.07, 0.131, 0.26, 0.39, 0.52, 0.64, 0.77, 0.9])
 
 # %%  reading data from all observers
 ALL, low_lum_cdm2, high_lum_cdm2 = read_data_mlcm(names, 
@@ -45,9 +42,9 @@ ALL, low_lum_cdm2, high_lum_cdm2 = read_data_mlcm(names,
                                                   method=method, 
                                                   modeltype=modeltype,
                                                   normalized=normalized,
-                                                  boot=False)
+                                                  boot=False,
+                                                  use_actual_lum_measurement = True)
 
-#newluminances = [graytolum(l) for l in newluminances]
 
 # %% 
 if len(names)>1:
@@ -59,10 +56,10 @@ else:
 
 
 # %%
-ylim= (-0.1,1.1) if normalized else None
+ylim= (-0.1,1.1) if normalized else (0, ALL['CIh'].max())
 
 g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=True,
-                  margin_titles=True, col_wrap=1, legend_out=True, 
+                  margin_titles=True, col_wrap=col_wrap, legend_out=True, 
                   height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
 g.map(plt.scatter, 'luminance_cdm2', 'scale')
 
@@ -109,7 +106,6 @@ g.set_xlabels('Luminance [cd/m²]')
 labelnorm = 'normalized' if normalized else 'unnormalized'
 labelfr = 'wo_outliers' if any(list(frs.values())) else 'alltrials'
 g.savefig('../figs/%s_%s_%s_%s_%s.pdf' % (savename, modeltype, method, labelnorm, labelfr))
-
 
 
 
