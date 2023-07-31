@@ -54,11 +54,15 @@ else:
     savename = '%s' % names[0]
     col_wrap = 1
 
+if normalized:
+    sharey=True
+else:
+    sharey=False
 
 # %%
-ylim= (-0.1,1.1) if normalized else (0, ALL['CIh'].max())
+ylim= (-0.1,1.1) if normalized else None
 
-g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=True,
+g = sns.FacetGrid(ALL, col='observer', hue='carrier', sharey=sharey,
                   margin_titles=True, col_wrap=col_wrap, legend_out=True, 
                   height=5, palette=palette, xlim=(-25, 525), ylim=ylim)
 g.map(plt.scatter, 'luminance_cdm2', 'scale')

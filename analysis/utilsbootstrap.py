@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Utilities for loading and saving python dictionaries
+Utilities to calculate confidence intervals from boostrap distributions
 
+Reference: 
+    Efron & Tibshirani (1993). Introduction to the bootstrap. Chapter 13-3
+    
 @author: G. Aguilar, Nov2014
 update March 2020: to work on python3
 
