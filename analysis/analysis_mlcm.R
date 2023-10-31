@@ -161,7 +161,7 @@ estimate_scales <- function(rootname,
                             do_bootstrap=FALSE, 
                             nsim=1000, 
                             fr=FALSE, 
-                            thr='auto') {
+                            plotflag=FALSE) {
   
   ncores <- 4
 
@@ -180,14 +180,16 @@ estimate_scales <- function(rootname,
   df <- read.csv(paste(rootname, '.csv', sep = ""), sep = ',')
   keeps <- c("Resp", "L1", "L2", "C1", "C2")
   df1 <- df[keeps]
-  cat(paste('number of observations:', nrow(df1), sep=' '))
+  cat(paste('number of trials:', nrow(df1), sep=' '))
   
   
   ### estimating the scales
   obs <- mlcm(df1, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
   print(obs)
   
-  #plot(obs, type='b')
+  if(plotflag){
+    plot(obs, type='b')
+  }
   
   # refiting by filtering trials with high residuals. take the high residuals of the full model
   if (fr) {
@@ -198,23 +200,10 @@ estimate_scales <- function(rootname,
       obs <- mlcm(df1, model = 'full', method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
     }
     
-    if (is.numeric(thr)){
-      
-      cat('*** removing trials with residuals higher than a threshold to improve goodnesss of fit ***\n')
-      
-      # thr is arbitrary, thr = 2.5 in the book and in our previous work
-      y <- df1[((residuals(obs$obj) > -thr) & (residuals(obs$obj) < thr)), ]
-      cat(paste('dataset reduced to -> ', nrow(y), '\n', sep=""))
-      
-      obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
-      
-    } else{
+
       # we get the vector of residuals (deviance residual)
       res <- residuals(obs$obj)
       s <- sort(abs(res), decreasing=TRUE, index.return=TRUE) # return sorted value AND index
-      
-      # first 10 indices with highest deviance residuals 
-      #res[s$ix[1:10]]
       
       finished <- FALSE
       start <- 1
@@ -228,31 +217,33 @@ estimate_scales <- function(rootname,
         removed <- df1[s$ix[1:start-1],]
         write.csv(removed, paste(rootname, '_removed.csv', sep = ""))
         
-        cat(paste('dataset reduced to -> ', nrow(y), '\n', sep=""))
-        cat(paste('removed -> ', nrow(removed), '\n', sep=""))
+        cat(paste('dataset reduced to -> ', nrow(y), ' trials \n', sep=""))
+        cat(paste('removed -> ', nrow(removed), ' trials \n', sep=""))
         
         obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
         
         # evaluate GoF
         obs.diags <- pbinom.diagnostics(obs, nsim=1000, ncores=ncores,
                                         control=glm.control(epsilon=1e-4))
+        if(plotflag){
+          plot(obs.diags)
+        }
         
-        #plot(obs.diags)
         
-        
-        # print the statistics
+        # print the GoF statistics
         per <- percentage_residuals_in_envelope(obs.diags)
         p <- obs.diags$p
-        cat(paste('Percentage inside envelope CDF deviance residuals: ', per, '\n', sep=""))
-        cat(paste('p-value of number of runs histogram: ', p, '\n',sep=""))
-        #cat(obs.diags$ObsRuns)
-        
+        cat('goodness of fit measures:\n')
+        cat(paste('- percentage inside envelope CDF deviance residuals: ', per, '\n', sep=""))
+        cat(paste('- p-value of number of runs histogram: ', p, '\n',sep=""))
+
         # if p-val <0.05 then take one trial less (start +=1)
         if (p<0.05){
-          cat('eliminating one trial more... \n\n')
+          cat('...eliminating one more trial... \n\n')
           start <- start +1
+          
         } else{ # if p-val >=0.05, break out of loop
-          cat('p-value >= 0.05, breaking the loop \n\n')
+          cat('...p-value >= 0.05, iteration finished.\n\n')
           finished <- TRUE
         }
         
@@ -262,11 +253,11 @@ estimate_scales <- function(rootname,
         file2save <- paste(rootname2, suffixsave, sep = "")
         save(obs.diags, per, p, file=file2save)
         
-      }
+      } # end while
       
-    }
     suffix <- '.fr.glm.MLCM'
-  } 
+    
+  } # end if(fr)
   else{
     suffix <- '.glm.MLCM'
   }
@@ -356,10 +347,10 @@ estimate_scales <- function(rootname,
 filename = '/home/guille/git/surround_brightness/surround_brightness/data/example_processed_data'
 
 # estimates scales with additive model
-obs.add <- estimate_scales(filename, 'add')
+obs.add <- estimate_scales(filename, 'add', plotflag=TRUE)
 
 # estimate scales with full ('saturated') model
-obs.full <- estimate_scales(filename, 'full')
+obs.full <- estimate_scales(filename, 'full', plotflag=TRUE)
 
 # compares which models explains the data better
 cat('********** Comparing ADD vs FULL model **********\n')
@@ -370,6 +361,6 @@ estimate_scales(filename, 'full',
                 do_bootstrap=TRUE , 
                 nsim=1000, 
                 fr=TRUE,
-                thr='auto')
+                plotflag=TRUE)
 
 
