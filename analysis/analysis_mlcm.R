@@ -4,16 +4,28 @@ library(snow)
 
 # TODOS
 # separate estimate_scales into smaller functions
-# add normalization of scales to 1, with corresponding CI calculation
+# add normalization of scales to 1, with corresponding CI calculation (done in python before)
 # save everything as CSVs - raw and normalized scales - bootstrap samples as well
 
+################################################################################
+##################### Function definitions #####################################
+################################################################################
 
-
-pboot.mlcm <- function(x, nsim, workers="localhost", master="localhost", ...){
+#' Parallelized version of 'boot.mlcm':  Resampling of an Estimated Conjoint Measurement Scale
+#' Same implementation as boot.mlcm but adapted to run in parallel
+#' on different hosts (processes in the same machine or different machines)
+#' using the package 'snow'.
+#'
+#' Same parameters as boot.mlcm, with the addition of
+#' @param ncores number of cores. Default 1.
+#'
+pboot.mlcm <- function(x, nsim, ncores=1, ...){
   
+  workers <- replicate(ncores, "localhost")
+
   # working with snow
-  cl <- makeSOCKcluster(workers, master= master)
-  
+  cl <- makeSOCKcluster(names=workers)
+
   d <- as.matrix(x$obj$data[, -1])
   p <- fitted(x)
   rsim <- matrix(rbinom(length(p) * nsim, 1, p), 
@@ -36,10 +48,27 @@ pboot.mlcm <- function(x, nsim, workers="localhost", master="localhost", ...){
 }
 
 
-evaluateResiduals <- function(x){
+
+#' Calculates the percentage of residuals falling inside the 95 % envelope obtained
+#' via bootstrap. A higher percentage indicates that the observed residuals are 
+#' distributed in a similar fashion as simulated data generated with the observer
+#' model assumed by MLDS/MLCM. In other words, a higher percentage indicates 
+#' better goodness of fit.
+#'
+#' @param x a goodness of fit diagnostics object (from MLDS or MLCM)
+#'
+#' @return the percentage  inside the envelope (numeric)
+#'
+#' @examples
+#' obs <- mlcm(data)
+#' obs.diags <- binom.diagnostics(obs)
+#' percentage_residuals_in_envelope(obs.diags)
+percentage_residuals_in_envelope <- function(x){
+  
   nsim <- dim(x$resid)[1]
   n <- dim(x$resid)[2]
   alpha = 0.025
+  
   splUpper <- smooth.spline(x$resid[alpha*nsim,], (1:n-0.5)/n)
   splLower <- smooth.spline(x$resid[(1-alpha)*nsim,], (1:n-0.5)/n)
   splObs <- smooth.spline(sort(x$Obs.resid), (1:n-0.5)/n)
@@ -51,21 +80,27 @@ evaluateResiduals <- function(x){
       nfit <- nfit +1
     }
   }
-  fitProbs <- (nfit*100)/length(splObs$x)
-  return(fitProbs)
+  percentage <- (nfit*100)/length(splObs$x)
+  return(percentage)
 }
 
 
-daf <- function(obj){
-  val <- (obj$null.deviance - obj$deviance)/obj$null.deviance
-  return(val)
-}
 
-pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRUE, workers="localhost", master="localhost", ...) 
+#' Parallelized version of 'binom.diagnostics': Diagnostics for Binary GLM
+#' Same implementation as binom.diagnostics but adapted to run in parallel
+#' on different hosts (processes in the same machine or different machines)
+#' using the package 'snow'.
+#'
+#' Same parameters as boot.mlcm, with the addition of
+#' @param ncores number of cores. Default 1.
+pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRUE, ncores=1, ...) 
 {
+  
+  workers <- replicate(ncores, "localhost")
+
   # working with snow
   # initialize cluster
-  cl <- makeSOCKcluster(workers, master= master)
+  cl <- makeSOCKcluster(names=workers)
   
   # loads MLCM package on each of the workers
   clusterEvalQ(cl, library(MLCM))
@@ -120,27 +155,6 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
   fres
 }
 
-#### MLCM analysis
-comparemodels <- function(rootname,fr=FALSE) {
-  
-  if(fr){
-    suffix <- '.fr.glm.MLCM'
-  } 
-  else{
-    suffix <- '.glm.MLCM'
-  }
-  
-  modeltype <- 'add'
-  load(paste(rootname, '_', modeltype, suffix, sep = ""))
-  obs.add <- obs
-  
-  modeltype <- 'full'
-  load(paste(rootname, '_', modeltype, suffix, sep = ""))
-  obs.full <- obs
-  
-  print(anova(obs.add, obs.full, test='Chisq'))
-  
-}
 
 estimate_scales <- function(rootname, 
                             modeltype="full", 
@@ -150,24 +164,23 @@ estimate_scales <- function(rootname,
                             thr='auto') {
   
   ncores <- 4
-  workers <- replicate(ncores, "localhost")
-  master <- "localhost"
-  
+
+  cat('********** Estimating scales - START **********\n')
   # epsilon is the resolution given to the optimization routine. At a difference
   # of epsilon is where the algorithm stops. We have issues with the default
   # epsilon for the full model. It tends to be stuck at local minima 
   # and overestimates the scale values. This happens particularly bad for the
-  # bootstrap samples. I manually and by hand decresed the epsilon value
+  # bootstrap samples. I manually and by hand decreased the epsilon value
   # to a value that does not give those results. It's a hack but it seems
   # to work. Alternatively one would have to try another optimization algorithm
-  # more robust to local minima. G.A. 
+  # more robust to local minima. GA. 
   # # default is epsilon = 1e-8. 
   epsilon <- 1e-4 
   
   df <- read.csv(paste(rootname, '.csv', sep = ""), sep = ',')
   keeps <- c("Resp", "L1", "L2", "C1", "C2")
   df1 <- df[keeps]
-  print(nrow(df1))
+  cat(paste('number of observations:', nrow(df1), sep=' '))
   
   
   ### estimating the scales
@@ -186,9 +199,12 @@ estimate_scales <- function(rootname,
     }
     
     if (is.numeric(thr)){
+      
+      cat('*** removing trials with residuals higher than a threshold to improve goodnesss of fit ***\n')
+      
       # thr is arbitrary, thr = 2.5 in the book and in our previous work
       y <- df1[((residuals(obs$obj) > -thr) & (residuals(obs$obj) < thr)), ]
-      print(paste('dataset reduced to -> ', nrow(y), sep=""))
+      cat(paste('dataset reduced to -> ', nrow(y), '\n', sep=""))
       
       obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
       
@@ -204,37 +220,39 @@ estimate_scales <- function(rootname,
       start <- 1
       while(!finished){
         
+        cat('*** iteratively removing putative outliers (trials with high residuals) to improve goodnesss of fit ***\n')
+        
         # select first trials
         y <- df1[sort(s$ix[start:nrow(df1)]), ]
         
         removed <- df1[s$ix[1:start-1],]
         write.csv(removed, paste(rootname, '_removed.csv', sep = ""))
         
-        print(paste('dataset reduced to -> ', nrow(y), sep=""))
-        print(paste('removed -> ', nrow(removed), sep=""))
+        cat(paste('dataset reduced to -> ', nrow(y), '\n', sep=""))
+        cat(paste('removed -> ', nrow(removed), '\n', sep=""))
         
         obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
         
         # evaluate GoF
-        obs.diags <- pbinom.diagnostics(obs, nsim=1000, workers=workers, master=master,
+        obs.diags <- pbinom.diagnostics(obs, nsim=1000, ncores=ncores,
                                         control=glm.control(epsilon=1e-4))
         
         #plot(obs.diags)
         
         
         # print the statistics
-        per <- evaluateResiduals(obs.diags)
+        per <- percentage_residuals_in_envelope(obs.diags)
         p <- obs.diags$p
-        print(paste('Percentage inside envelope CDF deviance residuals: ', per, sep=""))
-        print(paste('P-value of number of runs histogram: ', p, sep=""))
-        print(obs.diags$ObsRuns)
+        cat(paste('Percentage inside envelope CDF deviance residuals: ', per, '\n', sep=""))
+        cat(paste('p-value of number of runs histogram: ', p, '\n',sep=""))
+        #cat(obs.diags$ObsRuns)
         
         # if p-val <0.05 then take one trial less (start +=1)
         if (p<0.05){
-          print('eliminating one trial more... ')
+          cat('eliminating one trial more... \n\n')
           start <- start +1
         } else{ # if p-val >=0.05, break out of loop
-          print('breaking loop')
+          cat('p-value >= 0.05, breaking the loop \n\n')
           finished <- TRUE
         }
         
@@ -266,10 +284,10 @@ estimate_scales <- function(rootname,
   
   if(do_bootstrap){
     ### calculating confidence intervals
-    print('bootstrapping the model to calculate confidence intervals')
+    cat('bootstrapping the model to calculate confidence intervals\n')
     
     # we first bootstrap the model
-    obs.boot <- pboot.mlcm(obs, nsim=nsim, workers=workers, master=master, control=glm.control(epsilon=epsilon))
+    obs.boot <- pboot.mlcm(obs, nsim=nsim, ncores=ncores, control=glm.control(epsilon=epsilon))
     
     ## here  we manually calculate the percentile confidence intervals from the bootstrap samples
     # with 95 % confidence
@@ -320,22 +338,38 @@ estimate_scales <- function(rootname,
   }
   
   
-  
-  print('Done')
-  
+  cat('********** Estimating scales - END **********\n')
+  cat('*********************************************\n')
+  return(obs)
+
 }
+
+
+
+
+
+################################################################################
+##################### Analysis of a particular dataset #########################
+################################################################################
 
 
 filename = '/home/guille/git/surround_brightness/surround_brightness/data/example_processed_data'
 
-estimate_scales(filename, 'add')
-estimate_scales(filename, 'full')
+# estimates scales with additive model
+obs.add <- estimate_scales(filename, 'add')
 
-comparemodels(filename)
+# estimate scales with full ('saturated') model
+obs.full <- estimate_scales(filename, 'full')
 
+# compares which models explains the data better
+cat('********** Comparing ADD vs FULL model **********\n')
+print(anova(obs.add, obs.full, test='Chisq'))
+
+###
 estimate_scales(filename, 'full', 
                 do_bootstrap=TRUE , 
                 nsim=1000, 
-                fr=TRUE)
+                fr=TRUE,
+                thr='auto')
 
 
