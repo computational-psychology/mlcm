@@ -3,17 +3,19 @@ library(MLCM)
 library(snow)
 
 # TODOS
-# separate estimate_scales into smaller functions
-# add normalization of scales to 1, with corresponding CI calculation (done in python before)
 # save everything as CSVs - raw and normalized scales - bootstrap samples as well
+#  - long format -- need to convert to it
+#  - add columns for CI low and high if bootstrap flag is ON
 
-################################################################################
+# add normalization of scales to 1, with corresponding CI calculation (done in python before)
+
+# separate estimate_scales into smaller functions
+
 ##################### Function definitions #####################################
-################################################################################
 
 #' Parallelized version of 'boot.mlcm':  Resampling of an Estimated Conjoint Measurement Scale
 #' Same implementation as boot.mlcm but adapted to run in parallel
-#' on different hosts (processes in the same machine or different machines)
+#' on different hosts (processes in the same machine, or even in different machines)
 #' using the package 'snow'.
 #'
 #' Same parameters as boot.mlcm, with the addition of
@@ -49,46 +51,9 @@ pboot.mlcm <- function(x, nsim, ncores=1, ...){
 
 
 
-#' Calculates the percentage of residuals falling inside the 95 % envelope obtained
-#' via bootstrap. A higher percentage indicates that the observed residuals are 
-#' distributed in a similar fashion as simulated data generated with the observer
-#' model assumed by MLDS/MLCM. In other words, a higher percentage indicates 
-#' better goodness of fit.
-#'
-#' @param x a goodness of fit diagnostics object (from MLDS or MLCM)
-#'
-#' @return the percentage  inside the envelope (numeric)
-#'
-#' @examples
-#' obs <- mlcm(data)
-#' obs.diags <- binom.diagnostics(obs)
-#' percentage_residuals_in_envelope(obs.diags)
-percentage_residuals_in_envelope <- function(x){
-  
-  nsim <- dim(x$resid)[1]
-  n <- dim(x$resid)[2]
-  alpha = 0.025
-  
-  splUpper <- smooth.spline(x$resid[alpha*nsim,], (1:n-0.5)/n)
-  splLower <- smooth.spline(x$resid[(1-alpha)*nsim,], (1:n-0.5)/n)
-  splObs <- smooth.spline(sort(x$Obs.resid), (1:n-0.5)/n)
-  
-  nfit <- 0
-  for(i in (1:length(splObs$x))){
-    xval <- (splObs$x)[i]
-    if( (predict(splObs, xval)$y < predict(splUpper, xval)$y) && (predict(splObs, xval)$y > predict(splLower, xval)$y) ){
-      nfit <- nfit +1
-    }
-  }
-  percentage <- (nfit*100)/length(splObs$x)
-  return(percentage)
-}
-
-
-
 #' Parallelized version of 'binom.diagnostics': Diagnostics for Binary GLM
 #' Same implementation as binom.diagnostics but adapted to run in parallel
-#' on different hosts (processes in the same machine or different machines)
+#' on different hosts (processes in the same machine, or even on different machines)
 #' using the package 'snow'.
 #'
 #' Same parameters as boot.mlcm, with the addition of
@@ -97,7 +62,7 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
 {
   
   workers <- replicate(ncores, "localhost")
-
+  
   # working with snow
   # initialize cluster
   cl <- makeSOCKcluster(names=workers)
@@ -156,11 +121,49 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
 }
 
 
-estimate_scales <- function(rootname, 
+#' Calculates the percentage of residuals falling inside the 95 % envelope obtained
+#' via bootstrap. A higher percentage indicates that the observed residuals are 
+#' distributed in a similar fashion as simulated data generated with the observer
+#' model assumed by MLDS/MLCM. In other words, a higher percentage indicates 
+#' better goodness of fit.
+#'
+#' @param x a goodness of fit diagnostics object (from MLDS or MLCM)
+#'
+#' @return the percentage  inside the envelope (numeric)
+#'
+#' @examples
+#' obs <- mlcm(data)
+#' obs.diags <- binom.diagnostics(obs)
+#' percentage_residuals_in_envelope(obs.diags)
+percentage_residuals_in_envelope <- function(x){
+  
+  nsim <- dim(x$resid)[1]
+  n <- dim(x$resid)[2]
+  alpha = 0.025
+  
+  splUpper <- smooth.spline(x$resid[alpha*nsim,], (1:n-0.5)/n)
+  splLower <- smooth.spline(x$resid[(1-alpha)*nsim,], (1:n-0.5)/n)
+  splObs <- smooth.spline(sort(x$Obs.resid), (1:n-0.5)/n)
+  
+  nfit <- 0
+  for(i in (1:length(splObs$x))){
+    xval <- (splObs$x)[i]
+    if( (predict(splObs, xval)$y < predict(splUpper, xval)$y) && (predict(splObs, xval)$y > predict(splLower, xval)$y) ){
+      nfit <- nfit +1
+    }
+  }
+  percentage <- (nfit*100)/length(splObs$x)
+  return(percentage)
+}
+
+
+
+
+estimate_scales <- function(filename, 
                             modeltype="full", 
                             do_bootstrap=FALSE, 
                             nsim=1000, 
-                            fr=FALSE, 
+                            remove_outliers=FALSE, 
                             plotflag=FALSE) {
   
   ncores <- 4
@@ -177,7 +180,11 @@ estimate_scales <- function(rootname,
   # # default is epsilon = 1e-8. 
   epsilon <- 1e-4 
   
-  df <- read.csv(paste(rootname, '.csv', sep = ""), sep = ',')
+  name <- basename(filename)
+  rootname <- strsplit(name, '.csv')[[1]]
+  dname <- dirname(filename)
+    
+  df <- read.csv(filename, sep = ',')
   keeps <- c("Resp", "L1", "L2", "C1", "C2")
   df1 <- df[keeps]
   cat(paste('number of trials:', nrow(df1), sep=' '))
@@ -191,8 +198,8 @@ estimate_scales <- function(rootname,
     plot(obs, type='b')
   }
   
-  # refiting by filtering trials with high residuals. take the high residuals of the full model
-  if (fr) {
+  # refitting by filtering trials with high residuals. take the high residuals of the full model
+  if (remove_outliers) {
     
     # if we're calculating the additive model, we get the outliers from the residuals of the full model. 
     # thus we need to quicky fit the full model first....
@@ -215,7 +222,7 @@ estimate_scales <- function(rootname,
         y <- df1[sort(s$ix[start:nrow(df1)]), ]
         
         removed <- df1[s$ix[1:start-1],]
-        write.csv(removed, paste(rootname, '_removed.csv', sep = ""))
+        write.csv(removed, file.path(dname, paste(rootname, '_removed.csv', sep = "")))
         
         cat(paste('dataset reduced to -> ', nrow(y), ' trials \n', sep=""))
         cat(paste('removed -> ', nrow(removed), ' trials \n', sep=""))
@@ -247,20 +254,28 @@ estimate_scales <- function(rootname,
           finished <- TRUE
         }
         
-        # saving GOF data in diags.MLCM
+        # saving GOF data in a Rds file 
         rootname2 = paste(rootname, '_', modeltype, sep = "")
-        suffixsave <- '.fr.glm.diags.MLCM'
-        file2save <- paste(rootname2, suffixsave, sep = "")
+        suffixsave <- '_or.diags.Rds'
+        
+        file2save <- file.path(dname, paste(rootname2, suffixsave, sep = ""))
+        
         save(obs.diags, per, p, file=file2save)
         
       } # end while
       
-    suffix <- '.fr.glm.MLCM'
+    suffix <- '_outliers_removed'
     
-  } # end if(fr)
-  else{
-    suffix <- '.glm.MLCM'
+  } else{  # end if(remove_outliers)
+    suffix <- ''
   }
+  
+  
+  # filenames where to save 
+  rdsfile2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '.Rds', sep = ""))
+  scales2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '_scales.csv', sep = ""))
+  bootscales2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '_bootsamples.csv', sep = ""))
+  print(paste('saving in..', rdsfile2save, sep = ""))
   
   
   # scale values are:
@@ -273,12 +288,14 @@ estimate_scales <- function(rootname,
   }
   
   
+  
   if(do_bootstrap){
     ### calculating confidence intervals
     cat('bootstrapping the model to calculate confidence intervals\n')
     
     # we first bootstrap the model
     obs.boot <- pboot.mlcm(obs, nsim=nsim, ncores=ncores, control=glm.control(epsilon=epsilon))
+    #obs.boot <- boot.mlcm(obs, nsim=nsim, control=glm.control(epsilon=epsilon))
     
     ## here  we manually calculate the percentile confidence intervals from the bootstrap samples
     # with 95 % confidence
@@ -287,14 +304,12 @@ estimate_scales <- function(rootname,
     # getting number of contexts
     nc <- as.integer(ncol(obs$pscale))
     
-    
     ## if the model is additive, we need to rearrange the bootstrap samples a bit
     ## to get the full matrix
     if (modeltype=='add'){
       additiveshift <- samples[nrow(samples),]
       
       context1 <- samples[1:nrow(samples)-1,]
-      
       context2 <- rbind(rep(0, nsim), samples[1:nrow(samples)-1,]) + additiveshift
       
       samples <- rbind(context1, context2)
@@ -304,7 +319,6 @@ estimate_scales <- function(rootname,
     
     # samples a matrix of size n params x n boostrap samples
     # we then calculate for each row (each parameter) the percentiles
-    
     obs.low <- c(0, apply(samples, 1, quantile, probs = 0.025))
     obs.high <- c(0, apply(samples, 1, quantile, probs = 0.975))
     
@@ -320,14 +334,19 @@ estimate_scales <- function(rootname,
     # upper bound:
     #print(bg.high)
     
-    save(obs, obs.boot, obs.scales, obs.low, obs.high, samples, file=paste(rootname, '_', modeltype, suffix, sep = ""))
-    print(paste('saving in..', rootname, '_', modeltype, suffix, sep = ""))
+    # save results in Rds file
+    save(obs, obs.boot, obs.scales, obs.low, obs.high, samples, file=rdsfile2save)
     
-  }else{
-    save(obs, obs.scales, file=paste(rootname, '_', modeltype, suffix, sep = ""))
+    # save bootstrap samples in CSV file as well
+    write.csv(t(samples), file=bootscales2save)
     
+  } # end if bootstrap
+  else{
+    save(obs, obs.scales, file=rdsfile2save)
   }
   
+  # save scales in CSV file
+  write.csv(obs.scales, file=scales2save)
   
   cat('********** Estimating scales - END **********\n')
   cat('*********************************************\n')
@@ -339,28 +358,29 @@ estimate_scales <- function(rootname,
 
 
 
-################################################################################
 ##################### Analysis of a particular dataset #########################
-################################################################################
 
-
-filename = '/home/guille/git/surround_brightness/surround_brightness/data/example_processed_data'
+filename = '/home/guille/git/surround_brightness/surround_brightness/data/example_data.csv'
 
 # estimates scales with additive model
-obs.add <- estimate_scales(filename, 'add', plotflag=TRUE)
+obs.add <- estimate_scales(filename, 'add', 
+                           do_bootstrap=TRUE, 
+                           plotflag=TRUE)
 
 # estimate scales with full ('saturated') model
-obs.full <- estimate_scales(filename, 'full', plotflag=TRUE)
+obs.full <- estimate_scales(filename, 'full', 
+                            do_bootstrap=TRUE, 
+                            plotflag=TRUE)
 
 # compares which models explains the data better
 cat('********** Comparing ADD vs FULL model **********\n')
 print(anova(obs.add, obs.full, test='Chisq'))
 
 ###
-estimate_scales(filename, 'full', 
-                do_bootstrap=TRUE , 
-                nsim=1000, 
-                fr=TRUE,
-                plotflag=TRUE)
+#estimate_scales(filename, 'full', 
+#                do_bootstrap=TRUE , 
+#                nsim=1000, 
+#                remove_outliers=TRUE,
+#                plotflag=TRUE)
 
 
