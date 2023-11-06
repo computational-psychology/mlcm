@@ -1,4 +1,17 @@
-# Functions to estimate perceptual scales with MLCM
+#### Functions and analysis pipeline for MLCM data - surround brightness project
+## 
+## It gets as input a CSV filename where data from an MLCM experiment is located.
+## The format should comply with the standard format for MLCM (see example)
+## Outputs are the estimate scales as CSV files. It also saves the bootstrap
+## samples used for the CI estimation, and the raw R objects as a .rds file.
+##
+## Limitations: 
+## - the stimulus dimensions are hard coded (luminance and context)
+## - it allows only 2 contexts (for ex. in white and in black, for White's).
+##   code would need to be refactored further to make it more general.
+##   
+## author: G. Aguilar, Nov 2023
+
 library(MLCM)
 library(snow)
 
@@ -172,7 +185,9 @@ estimate_scales <- function(filename,
                             do_bootstrap=FALSE, 
                             nsim=1000, 
                             remove_outliers=FALSE, 
-                            plotflag=FALSE) {
+                            plotflag=FALSE,
+                            normalized=FALSE,
+                            saverds=FALSE) {
   
   ncores <- 4
 
@@ -230,7 +245,7 @@ estimate_scales <- function(filename,
         y <- df1[sort(s$ix[start:nrow(df1)]), ]
         
         removed <- df1[s$ix[1:start-1],]
-        write.csv(removed, file.path(dname, paste(rootname, '_removed.csv', sep = "")))
+        write.csv(removed, file.path(dname, paste(rootname, '-trialsremoved.csv', sep = "")))
         
         cat(paste('dataset reduced to -> ', nrow(y), ' trials \n', sep=""))
         cat(paste('removed -> ', nrow(removed), ' trials \n', sep=""))
@@ -263,28 +278,20 @@ estimate_scales <- function(filename,
         }
         
         # saving GOF data in a Rds file 
-        rootname2 = paste(rootname, '_', modeltype, sep = "")
-        suffixsave <- '_or.diags.Rds'
+        #rootname2 = paste(rootname, '-', modeltype, sep = "")
+        #suffixsave <- '-or-diags.Rds'
         
-        file2save <- file.path(dname, paste(rootname2, suffixsave, sep = ""))
+        #file2save <- file.path(dname, paste(rootname2, suffixsave, sep = ""))
         
-        save(obs.diags, per, p, file=file2save)
+        #save(obs.diags, per, p, file=file2save)
         
       } # end while
       
-    suffix <- '_outliers_removed'
+    suffix <- '-or'
     
   } else{  # end if(remove_outliers)
     suffix <- ''
   }
-  
-  
-  # filenames where to save 
-  rdsfile2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '.Rds', sep = ""))
-  scales2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '_scales.csv', sep = ""))
-  bootscales2save <- file.path(dname, paste(rootname, '_', modeltype, suffix, '_bootsamples.csv', sep = ""))
-  print(paste('saving in..', rdsfile2save, sep = ""))
-  
   
   # scale values, reformatting names of rows and columns 
   obs.scales <- obs$pscale
@@ -301,6 +308,24 @@ estimate_scales <- function(filename,
     obs.scales[,2] <- obs.scales[,1] + additiveshift
   }
 
+  
+  # we normalize the scale values
+  if (normalized){
+    obs.scales = obs.scales / obs.scales[nrow(obs.scales), 2]
+    normsuffix <- '-norm'
+    
+  } else{
+    normsuffix <- ''
+  }
+  
+  
+  # filenames where to save 
+  rdsfile2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '.Rds', sep = ""))
+  scales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-scales.csv', sep = ""))
+  bootscales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-bootsamples.csv', sep = ""))
+  print(paste('saving in..', rdsfile2save, sep = ""))
+  
+  
   #
   if(do_bootstrap){
     ### calculating confidence intervals
@@ -329,6 +354,14 @@ estimate_scales <- function(filename,
       
     }
     
+    # if we want normalized scales, we divide the samples matrix by the maximum
+    # in each sample.
+    if (normalized){
+      
+      maximum <- samples[nrow(samples), ]
+      samples <- t(t(samples)/maximum)
+    }
+    
     
     # samples a matrix of size n params x n boostrap samples
     # we then calculate for each row (each parameter) the percentiles
@@ -348,14 +381,23 @@ estimate_scales <- function(filename,
     
 
     # save results in Rds file
-    save(obs, obs.boot, file=rdsfile2save)
-    
+    if(saverds && remove_outliers){
+        save(obs, obs.boot, obs.diags, per, p, file=rdsfile2save)
+    }else if (saverds){
+        save(obs, obs.boot, file=rdsfile2save)
+    }
+
     # save bootstrap samples in CSV file as well
     write.csv(t(samples), file=bootscales2save)
     
   } # end if bootstrap
   else{
-    save(obs, obs.scales, file=rdsfile2save)
+    # save results in Rds file
+    if(saverds && remove_outliers){
+      save(obs, obs.diags, per, p, file=rdsfile2save)
+    } else if (saverds){
+      save(obs, file=rdsfile2save)
+    }
   }
   
   
@@ -399,27 +441,39 @@ estimate_scales <- function(filename,
 
 ##################### Analysis of a particular dataset #########################
 
-filename = '/home/guille/git/surround_brightness/surround_brightness/data/example_data.csv'
+filename = '/home/guille/git/surround_brightness/surround_brightness/data/example-data.csv'
 
 # estimates scales with additive model
-obs.add <- estimate_scales(filename, 'add', 
-                           do_bootstrap=TRUE, 
+obs.add <- estimate_scales(filename, 
+                           modeltype='add', 
+                           do_bootstrap=TRUE,
+                           normalized=TRUE,
                            plotflag=FALSE)
 
 # estimate scales with full ('saturated') model
-obs.full <- estimate_scales(filename, 'full', 
+obs.full <- estimate_scales(filename, 
+                            modeltype='full', 
                             do_bootstrap=TRUE, 
+                            normalized=TRUE,
                             plotflag=FALSE)
 
 # compares which models explains the data better
 cat('********** Comparing ADD vs FULL model **********\n')
 print(anova(obs.add, obs.full, test='Chisq'))
 
+
 ###
-#estimate_scales(filename, 'full', 
-#                do_bootstrap=TRUE , 
-#                nsim=1000, 
-#                remove_outliers=TRUE,
-#                plotflag=TRUE)
+# depending on the result of the test, the modeltype 'add' or 'full' should
+# be used in the next step. If the test is non-significant, that means the 
+# additive model is enough to explain the data. Then you should choose 'add'.
+# if it is significant, then the 'full' model explains the data better 
+# and you should use 'full'
+estimate_scales(filename, 
+                modeltype="full", 
+                do_bootstrap=TRUE,
+                remove_outliers=TRUE, 
+                plotflag=FALSE,
+                normalized=TRUE,
+                saverds=TRUE)
 
 
