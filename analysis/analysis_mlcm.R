@@ -4,12 +4,9 @@ library(snow)
 
 # TODOS
 # save everything as CSVs - raw and normalized scales - bootstrap samples as well
-#  - long format -- need to convert to it
-#  - add columns for CI low and high if bootstrap flag is ON
-
-# add normalization of scales to 1, with corresponding CI calculation (done in python before)
-
-# separate estimate_scales into smaller functions
+ # add option to raw or normalized scales 
+ # add normalization of scales to 1, with corresponding CI calculation (done in python before)
+ # save with different suffix
 
 ##################### Function definitions #####################################
 
@@ -159,6 +156,17 @@ percentage_residuals_in_envelope <- function(x){
 
 
 
+pivot_table_scales <- function(obs.scales){
+  
+  obs.long <- reshape(obs.scales, varying=c('Context.1', 'Context.2'), 
+                      timevar='context', v.names='scale', direction='long')
+  obs.long <- subset(obs.long, select=-id) # removing id column
+  
+  return(obs.long)
+  
+}
+
+
 estimate_scales <- function(filename, 
                             modeltype="full", 
                             do_bootstrap=FALSE, 
@@ -278,17 +286,22 @@ estimate_scales <- function(filename,
   print(paste('saving in..', rdsfile2save, sep = ""))
   
   
-  # scale values are:
+  # scale values, reformatting names of rows and columns 
   obs.scales <- obs$pscale
+  colnames(obs.scales) <- c('Context.1', 'Context.2')
+  for (i in 1:nrow(obs.scales)) {
+    rownames(obs.scales)[i] <- i
+  }
   
+  
+  # 
   if (modeltype=='add'){
     
     additiveshift <- obs$obj$coefficients[length(obs$obj$coefficients)]
     obs.scales[,2] <- obs.scales[,1] + additiveshift
   }
-  
-  
-  
+
+  #
   if(do_bootstrap){
     ### calculating confidence intervals
     cat('bootstrapping the model to calculate confidence intervals\n')
@@ -326,16 +339,16 @@ estimate_scales <- function(filename,
     dim(obs.low) <- c(length(obs.low)/nc, nc)
     dim(obs.high) <- c(length(obs.high)/nc, nc)
     
-    
     # the confidence intervals for each scale estimate are
     # lower bound:
-    #print(bg.low)
+    #print(obs.low)
     
     # upper bound:
-    #print(bg.high)
+    #print(obs.high)
     
+
     # save results in Rds file
-    save(obs, obs.boot, obs.scales, obs.low, obs.high, samples, file=rdsfile2save)
+    save(obs, obs.boot, file=rdsfile2save)
     
     # save bootstrap samples in CSV file as well
     write.csv(t(samples), file=bootscales2save)
@@ -345,8 +358,34 @@ estimate_scales <- function(filename,
     save(obs, obs.scales, file=rdsfile2save)
   }
   
+  
   # save scales in CSV file
-  write.csv(obs.scales, file=scales2save)
+  # reformatting to long
+  obs.scales <- data.frame(luminance = row.names(obs.scales), obs.scales)
+  obs.scales <- pivot_table_scales(obs.scales)
+  
+  if(do_bootstrap){
+    
+    # getting boundaries of confidence intervals also in the same format as scales
+    obs.lowci <- data.frame(luminance = 1:nrow(obs.low), obs.low)
+    colnames(obs.lowci) <- c('luminance', 'Context.1', 'Context.2')
+    obs.lowci <- pivot_table_scales(obs.lowci)
+    
+    obs.highci <- data.frame(luminance = 1:nrow(obs.high), obs.high)
+    colnames(obs.highci) <- c('luminance', 'Context.1', 'Context.2')
+    obs.highci <- pivot_table_scales(obs.highci)
+
+    # merging long scales dataframe with CI low and high boundaries 
+    tmp <- merge(obs.scales, obs.lowci, by=c('luminance', 'context'), sort=FALSE)
+    obs.scales <- merge(tmp, obs.highci, by=c('luminance', 'context'), sort=FALSE)
+    
+    colnames(obs.scales) <- c('luminance', 'context', 'scale', 'scale_CI_low', 'scale_CI_high')
+  }
+  
+  
+  
+  # saving as long-format CSV file
+  write.csv(obs.scales, file=scales2save, row.names = FALSE)
   
   cat('********** Estimating scales - END **********\n')
   cat('*********************************************\n')
@@ -365,12 +404,12 @@ filename = '/home/guille/git/surround_brightness/surround_brightness/data/exampl
 # estimates scales with additive model
 obs.add <- estimate_scales(filename, 'add', 
                            do_bootstrap=TRUE, 
-                           plotflag=TRUE)
+                           plotflag=FALSE)
 
 # estimate scales with full ('saturated') model
 obs.full <- estimate_scales(filename, 'full', 
                             do_bootstrap=TRUE, 
-                            plotflag=TRUE)
+                            plotflag=FALSE)
 
 # compares which models explains the data better
 cat('********** Comparing ADD vs FULL model **********\n')
