@@ -180,6 +180,25 @@ pivot_table_scales <- function(obs.scales){
 }
 
 
+#' Estimate perceptual scales from data using MLCM
+#'
+#' @param filename path to CSV file in the expected format (see example-data.csv)
+#' @param modeltype 'add' or 'full', for the type of model to be tested
+#' @param do_bootstrap TRUE or FALSE, whether to calculate bootstrap confidence 
+#'                    intervals or not. Default: FALSE
+#' @param nsim number of bootstrap samples. Default=1000
+#' @param remove_outliers TRUE or FALSE, whether or not to run goodness of fit 
+#'                        analyses and sequentially remove the trials with highest
+#'                        residuals (putative outliers) until a "good" GoF. Default: FALSE
+#' @param plotflag TRUE or FALSE, whether to do plots or not.
+#' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized 
+#'                    to its maximum. Default: FALSE
+#' @param saverds TRUE or FALSE, whether to save raw R objects in a Rds file. 
+#'                Default: FALSE. It is good practice to switch to TRUE 
+#'                for the final analysis, for archiving purposes. 
+#'                
+#' @return None. Output scales are saved as CSV files. 
+#'  
 estimate_scales <- function(filename, 
                             modeltype="full", 
                             do_bootstrap=FALSE, 
@@ -276,15 +295,7 @@ estimate_scales <- function(filename,
           cat('...p-value >= 0.05, iteration finished.\n\n')
           finished <- TRUE
         }
-        
-        # saving GOF data in a Rds file 
-        #rootname2 = paste(rootname, '-', modeltype, sep = "")
-        #suffixsave <- '-or-diags.Rds'
-        
-        #file2save <- file.path(dname, paste(rootname2, suffixsave, sep = ""))
-        
-        #save(obs.diags, per, p, file=file2save)
-        
+
       } # end while
       
     suffix <- '-or'
@@ -320,7 +331,7 @@ estimate_scales <- function(filename,
   
   
   # filenames where to save 
-  rdsfile2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '.Rds', sep = ""))
+  rdsfile2save <- file.path(dname, paste(rootname, '-', modeltype, suffix, '.Rds', sep = ""))
   scales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-scales.csv', sep = ""))
   bootscales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-bootsamples.csv', sep = ""))
   print(paste('saving in..', rdsfile2save, sep = ""))
@@ -446,16 +457,14 @@ filename = '/home/guille/git/surround_brightness/surround_brightness/data/exampl
 # estimates scales with additive model
 obs.add <- estimate_scales(filename, 
                            modeltype='add', 
-                           do_bootstrap=TRUE,
-                           normalized=TRUE,
-                           plotflag=FALSE)
+                           do_bootstrap=FALSE,
+                           normalized=TRUE)
 
 # estimate scales with full ('saturated') model
 obs.full <- estimate_scales(filename, 
                             modeltype='full', 
-                            do_bootstrap=TRUE, 
-                            normalized=TRUE,
-                            plotflag=FALSE)
+                            do_bootstrap=FALSE, 
+                            normalized=TRUE)
 
 # compares which models explains the data better
 cat('********** Comparing ADD vs FULL model **********\n')
@@ -470,9 +479,8 @@ print(anova(obs.add, obs.full, test='Chisq'))
 # and you should use 'full'
 estimate_scales(filename, 
                 modeltype="full", 
-                do_bootstrap=TRUE,
+                do_bootstrap=TRUE, 
                 remove_outliers=TRUE, 
-                plotflag=FALSE,
                 normalized=TRUE,
                 saverds=TRUE)
 
