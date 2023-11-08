@@ -1,7 +1,8 @@
 ---
 title: "Pipeline for estimating perceptual scales with MLCM"
-author: Guillermo Aguilar
+author: "Guillermo Aguilar"
 date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -41,7 +42,7 @@ limit or restriction on the amount of values. However, the current implementatio
 allows only 2 contexts, i.e. the columns C1 and C2 can only contain the integers
 1 or 2. 
 
-# First analysis: model selection
+# Step 1: model selection
 
 ## Logic
 The first step in the analysis is to fit the two possible models that MLCM provides:
@@ -117,7 +118,7 @@ the additive, and in the next step you should use the full model
 
 
 
-# Second analysis: goodness of fit, outlier removal and final scale estimates
+# Step 2: goodness of fit, outlier removal and final scale estimates
 
 After selection which model to use, we now are ready to estimate the final 
 scales by evaluate the goodness of fit. The same function `estimate_scales` 
