@@ -17,9 +17,9 @@ library(snow)
 
 # TODOS
 # save everything as CSVs - raw and normalized scales - bootstrap samples as well
- # add option to raw or normalized scales 
- # add normalization of scales to 1, with corresponding CI calculation (done in python before)
- # save with different suffix
+# add option to raw or normalized scales 
+# add normalization of scales to 1, with corresponding CI calculation (done in python before)
+# save with different suffix
 
 ##################### Function definitions #####################################
 
@@ -34,10 +34,10 @@ library(snow)
 pboot.mlcm <- function(x, nsim, ncores=1, ...){
   
   workers <- replicate(ncores, "localhost")
-
+  
   # working with snow
   cl <- makeSOCKcluster(names=workers)
-
+  
   d <- as.matrix(x$obj$data[, -1])
   p <- fitted(x)
   rsim <- matrix(rbinom(length(p) * nsim, 1, p), 
@@ -193,6 +193,9 @@ pivot_table_scales <- function(obs.scales){
 #' @param plotflag TRUE or FALSE, whether to do plots or not.
 #' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized 
 #'                    to its maximum. Default: FALSE
+#' @param savecsv TRUE or FALSE, whether to save scales as CSV files. 
+#'                Default: FALSE. If you want to save the scales for further analysis
+#'                then it needs to be set to TRUE.
 #' @param saverds TRUE or FALSE, whether to save raw R objects in a Rds file. 
 #'                Default: FALSE. It is good practice to switch to TRUE 
 #'                for the final analysis, for archiving purposes. 
@@ -206,10 +209,11 @@ estimate_scales <- function(filename,
                             remove_outliers=FALSE, 
                             plotflag=FALSE,
                             normalized=FALSE,
+                            savecsv=FALSE,
                             saverds=FALSE) {
   
   ncores <- 4
-
+  
   cat('********** Estimating scales - START **********\n')
   # epsilon is the resolution given to the optimization routine. At a difference
   # of epsilon is where the algorithm stops. We have issues with the default
@@ -225,7 +229,7 @@ estimate_scales <- function(filename,
   name <- basename(filename)
   rootname <- strsplit(name, '.csv')[[1]]
   dname <- dirname(filename)
-    
+  
   df <- read.csv(filename, sep = ',')
   keeps <- c("Resp", "L1", "L2", "C1", "C2")
   df1 <- df[keeps]
@@ -249,55 +253,56 @@ estimate_scales <- function(filename,
       obs <- mlcm(df1, model = 'full', method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
     }
     
-
-      # we get the vector of residuals (deviance residual)
-      res <- residuals(obs$obj)
-      s <- sort(abs(res), decreasing=TRUE, index.return=TRUE) # return sorted value AND index
+    
+    # we get the vector of residuals (deviance residual)
+    res <- residuals(obs$obj)
+    s <- sort(abs(res), decreasing=TRUE, index.return=TRUE) # return sorted value AND index
+    
+    finished <- FALSE
+    start <- 1
+    while(!finished){
+      cat('***********************************************************************\n')
+      cat('*** iteratively removing putative outliers (trials with high residuals)\n')
+      cat('     to improve goodnesss of fit **************************************\n')
       
-      finished <- FALSE
-      start <- 1
-      while(!finished){
-        
-        cat('*** iteratively removing putative outliers (trials with high residuals) to improve goodnesss of fit ***\n')
-        
-        # select first trials
-        y <- df1[sort(s$ix[start:nrow(df1)]), ]
-        
-        removed <- df1[s$ix[1:start-1],]
-        write.csv(removed, file.path(dname, paste(rootname, '-trialsremoved.csv', sep = "")))
-        
-        cat(paste('dataset reduced to -> ', nrow(y), ' trials \n', sep=""))
-        cat(paste('removed -> ', nrow(removed), ' trials \n', sep=""))
-        
-        obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
-        
-        # evaluate GoF
-        obs.diags <- pbinom.diagnostics(obs, nsim=1000, ncores=ncores,
-                                        control=glm.control(epsilon=1e-4))
-        if(plotflag){
-          plot(obs.diags)
-        }
-        
-        
-        # print the GoF statistics
-        per <- percentage_residuals_in_envelope(obs.diags)
-        p <- obs.diags$p
-        cat('goodness of fit measures:\n')
-        cat(paste('- percentage inside envelope CDF deviance residuals: ', per, '\n', sep=""))
-        cat(paste('- p-value of number of runs histogram: ', p, '\n',sep=""))
-
-        # if p-val <0.05 then take one trial less (start +=1)
-        if (p<0.05){
-          cat('...eliminating one more trial... \n\n')
-          start <- start +1
-          
-        } else{ # if p-val >=0.05, break out of loop
-          cat('...p-value >= 0.05, iteration finished.\n\n')
-          finished <- TRUE
-        }
-
-      } # end while
+      # select first trials
+      y <- df1[sort(s$ix[start:nrow(df1)]), ]
       
+      removed <- df1[s$ix[1:start-1],]
+      write.csv(removed, file.path(dname, paste(rootname, '-trialsremoved.csv', sep = "")))
+      
+      cat(paste('dataset reduced to -> ', nrow(y), ' trials \n', sep=""))
+      cat(paste('removed -> ', nrow(removed), ' trials \n', sep=""))
+      
+      obs <- mlcm(y, model = modeltype, method='glm.fit', lnk='probit', control=glm.control(epsilon=epsilon))
+      
+      # evaluate GoF
+      obs.diags <- pbinom.diagnostics(obs, nsim=1000, ncores=ncores,
+                                      control=glm.control(epsilon=1e-4))
+      if(plotflag){
+        plot(obs.diags)
+      }
+      
+      
+      # print the GoF statistics
+      per <- percentage_residuals_in_envelope(obs.diags)
+      p <- obs.diags$p
+      cat('goodness of fit measures:\n')
+      cat(paste('- percentage inside envelope CDF deviance residuals: ', per, '\n', sep=""))
+      cat(paste('- p-value of number of runs histogram: ', p, '\n',sep=""))
+      
+      # if p-val <0.05 then take one trial less (start +=1)
+      if (p<0.05){
+        cat('...eliminating one more trial... \n\n')
+        start <- start +1
+        
+      } else{ # if p-val >=0.05, break out of loop
+        cat('...p-value >= 0.05, iteration finished.\n\n')
+        finished <- TRUE
+      }
+      
+    } # end while
+    
     suffix <- '-or'
     
   } else{  # end if(remove_outliers)
@@ -318,7 +323,7 @@ estimate_scales <- function(filename,
     additiveshift <- obs$obj$coefficients[length(obs$obj$coefficients)]
     obs.scales[,2] <- obs.scales[,1] + additiveshift
   }
-
+  
   
   # we normalize the scale values
   if (normalized){
@@ -334,8 +339,6 @@ estimate_scales <- function(filename,
   rdsfile2save <- file.path(dname, paste(rootname, '-', modeltype, suffix, '.Rds', sep = ""))
   scales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-scales.csv', sep = ""))
   bootscales2save <- file.path(dname, paste(rootname, '-', modeltype, normsuffix, suffix, '-bootsamples.csv', sep = ""))
-  print(paste('saving in..', rdsfile2save, sep = ""))
-  
   
   #
   if(do_bootstrap){
@@ -390,23 +393,29 @@ estimate_scales <- function(filename,
     # upper bound:
     #print(obs.high)
     
-
+    
     # save results in Rds file
     if(saverds && remove_outliers){
-        save(obs, obs.boot, obs.diags, per, p, file=rdsfile2save)
+      print(paste('saving in..', rdsfile2save, sep = ""))
+      save(obs, obs.boot, obs.diags, per, p, file=rdsfile2save)
     }else if (saverds){
-        save(obs, obs.boot, file=rdsfile2save)
+      print(paste('saving in..', rdsfile2save, sep = ""))
+      save(obs, obs.boot, file=rdsfile2save)
     }
-
+    
     # save bootstrap samples in CSV file as well
-    write.csv(t(samples), file=bootscales2save)
+    if(savecsv){
+      write.csv(t(samples), file=bootscales2save)
+    }
     
   } # end if bootstrap
   else{
     # save results in Rds file
     if(saverds && remove_outliers){
+      print(paste('saving in..', rdsfile2save, sep = ""))
       save(obs, obs.diags, per, p, file=rdsfile2save)
     } else if (saverds){
+      print(paste('saving in..', rdsfile2save, sep = ""))
       save(obs, file=rdsfile2save)
     }
   }
@@ -427,7 +436,7 @@ estimate_scales <- function(filename,
     obs.highci <- data.frame(luminance = 1:nrow(obs.high), obs.high)
     colnames(obs.highci) <- c('luminance', 'Context.1', 'Context.2')
     obs.highci <- pivot_table_scales(obs.highci)
-
+    
     # merging long scales dataframe with CI low and high boundaries 
     tmp <- merge(obs.scales, obs.lowci, by=c('luminance', 'context'), sort=FALSE)
     obs.scales <- merge(tmp, obs.highci, by=c('luminance', 'context'), sort=FALSE)
@@ -438,50 +447,13 @@ estimate_scales <- function(filename,
   
   
   # saving as long-format CSV file
-  write.csv(obs.scales, file=scales2save, row.names = FALSE)
+  if(savecsv){
+    write.csv(obs.scales, file=scales2save, row.names = FALSE)
+  }
   
   cat('********** Estimating scales - END **********\n')
   cat('*********************************************\n')
   return(obs)
-
+  
 }
-
-
-
-
-
-##################### Analysis of a particular dataset #########################
-
-filename = '/home/guille/git/surround_brightness/surround_brightness/data/example-data.csv'
-
-# estimates scales with additive model
-obs.add <- estimate_scales(filename, 
-                           modeltype='add', 
-                           do_bootstrap=FALSE,
-                           normalized=TRUE)
-
-# estimate scales with full ('saturated') model
-obs.full <- estimate_scales(filename, 
-                            modeltype='full', 
-                            do_bootstrap=FALSE, 
-                            normalized=TRUE)
-
-# compares which models explains the data better
-cat('********** Comparing ADD vs FULL model **********\n')
-print(anova(obs.add, obs.full, test='Chisq'))
-
-
-###
-# depending on the result of the test, the modeltype 'add' or 'full' should
-# be used in the next step. If the test is non-significant, that means the 
-# additive model is enough to explain the data. Then you should choose 'add'.
-# if it is significant, then the 'full' model explains the data better 
-# and you should use 'full'
-estimate_scales(filename, 
-                modeltype="full", 
-                do_bootstrap=TRUE, 
-                remove_outliers=TRUE, 
-                normalized=TRUE,
-                saverds=TRUE)
-
 
