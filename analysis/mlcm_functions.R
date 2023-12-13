@@ -193,6 +193,81 @@ goodness_of_fit <- function(model, epsilon = 1e-4, ncores = 1, plots = FALSE) {
 
 
 
+remove_outliers <- function(
+    observed_data,
+    modeltype = "full",
+    save_outliers = "",
+    ncores = 1,
+    epsilon = 1e-4,
+    plots = FALSE) {
+  # if we're calculating the additive model,
+  # we get the outliers from the residuals of the full model.
+  # Thus we need to quicky fit the full model first....
+  model <- mlcm(observed_data,
+    model = "full",
+    method = "glm.fit",
+    lnk = "probit",
+    control = glm.control(epsilon = epsilon)
+  )
+
+  # we get the vector of residuals (deviance residual)
+  deviance_residuals <- residuals(model$obj)
+  s <- sort(abs(deviance_residuals),
+    decreasing = TRUE,
+    index.return = TRUE
+  ) # return sorted value AND index
+
+  finished <- FALSE
+  start <- 1
+  while (!finished) {
+    cat("***********************************************************************\n")
+    cat("*** iteratively removing putative outliers (trials with high residuals)\n")
+    cat("     to improve goodnesss of fit **************************************\n")
+
+    # select first trials
+    trimmed_data <- observed_data[sort(s$ix[start:nrow(observed_data)]), ]
+
+    removed <- observed_data[s$ix[1:start - 1], ]
+    if (!save_outliers == "") {
+      write.csv(removed, save_outliers, quote = FALSE, row.names = TRUE)
+    }
+    cat(paste("dataset reduced to -> ", nrow(trimmed_data), " trials \n", sep = ""))
+    cat(paste("removed -> ", nrow(removed), " trials \n", sep = ""))
+
+    model <- mlcm(trimmed_data,
+      model = modeltype,
+      method = "glm.fit",
+      lnk = "probit",
+      control = glm.control(epsilon = epsilon)
+    )
+
+    # evaluate GoF
+    gof <- goodness_of_fit(model, epsilon = epsilon, ncores = ncores, plots = plots)
+    cat("goodness of fit measures:\n")
+    cat(paste("- percentage inside envelope CDF deviance residuals: ",
+      gof$percentage,
+      "\n",
+      sep = ""
+    ))
+    cat(paste("- p-value of number of runs histogram: ", gof$p_value, "\n", sep = ""))
+
+    # if p-val <0.05 then take one trial less (start +=1)
+    if (gof$p_value < 0.05) {
+      cat("...eliminating one more trial... \n\n")
+      start <- start + 1
+    } else { # if p-val >=0.05, break out of loop
+      cat("...p-value >= 0.05, iteration finished.\n\n")
+      finished <- TRUE
+    }
+  } # end while
+
+  return(list(
+    model = model,
+    trimmed_data = trimmed_data,
+    gof = gof
+  ))
+}
+
 
 #' Pivot dataframe of scale-values to long-format
 #'
@@ -275,64 +350,24 @@ estimate_scales <- function(filepath,
 
   # Remove trials with high residuals (full model) and refit model
   if (remove_outliers) {
-    # if we're calculating the additive model, we get the outliers from the residuals of the full model.
-    # thus we need to quicky fit the full model first....
-    if (modeltype == "add") {
-      obs <- mlcm(df1, model = "full", method = "glm.fit", lnk = "probit", control = glm.control(epsilon = epsilon))
+    if (savecsv) {
+      outliers_file <- file.path(directory, paste(rootname, ".outliers.csv", sep = ""))
     }
-
-
-    # we get the vector of residuals (deviance residual)
-    res <- residuals(obs$obj)
-    s <- sort(abs(res), decreasing = TRUE, index.return = TRUE) # return sorted value AND index
-
-    finished <- FALSE
-    start <- 1
-    while (!finished) {
-      cat("***********************************************************************\n")
-      cat("*** iteratively removing putative outliers (trials with high residuals)\n")
-      cat("     to improve goodnesss of fit **************************************\n")
-
-      # select first trials
-      y <- df1[sort(s$ix[start:nrow(df1)]), ]
-
-      removed <- df1[s$ix[1:start - 1], ]
-      write.csv(removed, file.path(dname, paste(rootname, "-trialsremoved.csv", sep = "")))
-
-      cat(paste("dataset reduced to -> ", nrow(y), " trials \n", sep = ""))
-      cat(paste("removed -> ", nrow(removed), " trials \n", sep = ""))
-
-      obs <- mlcm(y, model = modeltype, method = "glm.fit", lnk = "probit", control = glm.control(epsilon = epsilon))
-
-      # evaluate GoF
-      obs.diags <- pbinom.diagnostics(obs,
-        nsim = 1000, ncores = ncores,
-        control = glm.control(epsilon = 1e-4)
-      )
-      if (plotflag) {
-        plot(obs.diags)
-      }
-
-
-      # print the GoF statistics
-      per <- percentage_residuals_in_envelope(obs.diags)
-      p <- obs.diags$p
-      cat("goodness of fit measures:\n")
-      cat(paste("- percentage inside envelope CDF deviance residuals: ", per, "\n", sep = ""))
-      cat(paste("- p-value of number of runs histogram: ", p, "\n", sep = ""))
-
-      # if p-val <0.05 then take one trial less (start +=1)
-      if (p < 0.05) {
-        cat("...eliminating one more trial... \n\n")
-        start <- start + 1
-      } else { # if p-val >=0.05, break out of loop
-        cat("...p-value >= 0.05, iteration finished.\n\n")
-        finished <- TRUE
-      }
-    } # end while
-
-    suffix <- "-or"
-  } else { # end if(remove_outliers)
+    removal <- remove_outliers(observed_data,
+      modeltype = modeltype,
+      save_outliers = outliers_file,
+      ncores = ncores,
+      epsilon = epsilon,
+      plots = plotflag
+    )
+    model <- removal$model
+    trimmed_data <- removal$trimmed_data
+    gof <- removal$gof
+    if (savecsv) {
+      write.csv(trimmed_data, file.path(directory, paste(rootname, ".trimmed.csv", sep = "")), quote = FALSE, row.names = FALSE)
+    }
+    suffix <- "-trim"
+  } else {
     suffix <- ""
   }
 
@@ -421,7 +456,7 @@ estimate_scales <- function(filepath,
     # save results in Rds file
     if (saverds && remove_outliers) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, obs.boot, obs.diags, per, p, file = rdsfile2save)
+      save(model, obs.boot, gof, file = rdsfile2save)
     } else if (saverds) {
       print(paste("saving in..", rdsfile2save, sep = ""))
       save(model, obs.boot, file = rdsfile2save)
@@ -436,7 +471,7 @@ estimate_scales <- function(filepath,
     # save results in Rds file
     if (saverds && remove_outliers) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, obs.diags, per, p, file = rdsfile2save)
+      save(model, gof, file = rdsfile2save)
     } else if (saverds) {
       print(paste("saving in..", rdsfile2save, sep = ""))
       save(model, file = rdsfile2save)
