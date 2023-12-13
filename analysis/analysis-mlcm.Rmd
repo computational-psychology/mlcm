@@ -11,13 +11,13 @@ knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE)
 
 # Imports
 
-We first import functions that execute the analysis itself. These functions 
-depends on the packages `MLCM` and `snow`. As shown below, the main function
-to be used is called `estimate_scales'. Other imported functions are helper 
-functions.
+We first import functions that execute the analysis itself.
+These functions depends on the packages `MLCM` and `snow`.
+As shown below, the main function to be used is called `estimate_scales`.
+Other imported functions are helper functions.
 
 ```{r sourcing function definitions}
-source('mlcm_functions.R')
+source("mlcm_functions.R")
 ```
 
 
@@ -26,155 +26,165 @@ source('mlcm_functions.R')
 We need the path to the CSV file to be analysed.
 
 ```{r estimate additive model}
-filename = '../data/example-data.csv'
+filename <- "../data/example-data.csv"
 ```
 
 The CSV file should be already in the format 'understood' by MLCM:
 
 - every row is a trial
 - the first column is called 'Resp', which contains the binary response to the trial.
-- the four columns containing the stimuli indices presented in that trial. In
-this case we use L1 and C1 to code the luminance and context of the first stimulus, 
-respectively. Similarly L2 and C2 code the luminance and context of the second 
-stimulus.
-The entries are integers starting from 1. For the luminance dimension there is no
-limit or restriction on the amount of values. However, the current implementation
-allows only 2 contexts, i.e. the columns C1 and C2 can only contain the integers
-1 or 2. 
+- the four columns containing the stimuli indices presented in that trial.
+
+In this case we use `L1` and `C1`
+to code the luminance and context of the first stimulus, respectively.
+Similarly `L2` and `C2` code the luminance and context of the second stimulus.
+The entries are integers starting from `1`.
+
+For the luminance dimension there is no limit or restriction on the amount of values.
+However, the current implementation allows only 2 contexts,
+i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 
 # Step 1: model selection
 
 ## Logic
 The first step in the analysis is to fit the two possible models that MLCM provides:
-additive conjoint measurement (`add`) or the full, saturated model (`full`).
+additive conjoint measurement (`add`)
+or the full, saturated model (`full`).
 
-The additive model assumes that the difference between contexts
-is additive. In our case, that means that the scale for context 2 is just a 
-shifted version of the scale for context 1. 
+The additive model assumes that the difference between contexts is additive.
+In our case,
+that means that the scale for context `2`
+is just a shifted version of the scale for context `1`.
 
-The full model relaxes that assumption and allows the possiblity of more complex
-interactions and not only a constant shift, at the expense of having more 
-parameters to be found.
+The full model relaxes that assumption
+and allows the possiblity of more complex interactions beyond only a constant shift,
+at the expense of having more parameters to be fit.
 
-We fit both models to the same data, and check whether the full model is indeed
-significantly better at explaining the data as the additive one.
+We fit both models to the same data,
+and check whether the full model is indeed
+significantly better at explaining the data as the additive one,
+given that it has more free parameters and is thus expected to always fit better.
 
 
 ## Estimates scales with additive model
 
-We call the function `estimate_scales` to do the fit. The parameter `modeltype` 
-controls which model we want to fit (`add` or `full`). 
-We set the flag `do_bootstrap` to FALSE because for the moment we are only 
-interested in the model fit and point estimate and
-we do not want to calculate bootstrap confidence intervals yet.
+We call the function `estimate_scales` to do the fit.
+The parameter `modeltype` controls which model we want to fit (`add` or `full`).
+We set the flag `do_bootstrap` to `FALSE`
+because for the moment we are only interested in the model fit and point estimate
+and we do not want to calculate bootstrap confidence intervals yet.
 
 ```{r}
-obs.add <- estimate_scales(filename, 
-                           modeltype='add', 
-                           do_bootstrap=FALSE)
+model_additive <- estimate_scales(filename,
+    modeltype = "add",
+    do_bootstrap = FALSE
+)
 ```
 
-We see the resulting scales values for the first context (column L), and the single additive
-shift factor for the second context (column C).
+We see the resulting scales values for the first context (column `L`),
+and the single additive shift factor for the second context (column `C`).
 
-## Estimate scales with full ('saturated') model
+## Estimate scales with `full` ('saturated') model
 
 ```{r estimate full model}
-obs.full <- estimate_scales(filename, 
-                            modeltype='full', 
-                            do_bootstrap=FALSE)
+model_full <- estimate_scales(filename,
+    modeltype = "full",
+    do_bootstrap = FALSE
+)
 ```
-Here we see that for each combination of L and C we obtain a scale value.
+Here we see that for each combination of `L` and `C` we obtain a scale value.
 
-Note: It is normal that we obtain a warning ('fitted probabilities numerically 
-0 or 1 occurred'). This only means that for some comparisons the observer was 
-perfectly consistent (always chose the same answer). This is expected for easy 
-trials.
+Note: It is normal that we obtain a warning
+('fitted probabilities numerically 0 or 1 occurred').
+This only means that for some comparisons
+the observer was perfectly consistent (always chose the same answer).
+This is expected for easy trials.
 
 
-## Model comparison  
+## Model comparison
 
-We now compare the two models with each other. This is done using the likelihood 
-ratio test (for which the statistic follows the $\chi^2$ distribution, Knoblauch & Maloney, 2012).
+We now compare the two models with each other.
+This is done using the likelihood ratio test
+(for which the statistic follows the $\chi^2$ distribution, Knoblauch & Maloney, 2012).
 
-Note: the command for the test is called `anova`, but what we are doing here is 
-*not* an analysis of variance (ANOVA).
+Note: the command for the test is called `anova`,
+but what we are doing here is *not* an analysis of variance (ANOVA).
 
 ```{r likelihood ratio test}
-print(anova(obs.add, obs.full, test='Chisq'))
+print(anova(model_additive, model_full, test = "Chisq"))
 ```
 
-The test considers the reduction of the residual deviance with the full model, 
-and evaluates if that reduction is signifficant. The column Pr(>Chi)
-shows the p-value.
+The test considers the reduction of the residual deviance with the full model,
+and evaluates if that reduction is signifficant.
+The column `Pr(>Chi)` shows the p-value.
 
-If the test is non-significant (p-value >= 0.05), that means the 
-additive model is enough to explain the data. Then, on the next step 
-you should choose the additive model (`modeltype='add'`).
+If the test _is not_ significant (p-value >= 0.05),
+that means the additive model is enough to explain the data.
+Then, on the next step you should choose the additive model (`modeltype="add"`).
 
-If it is significant, then the 'full' model explains the data better than
-the additive, and in the next step you should use the full model 
-(`modeltype='full'`).
-
+If it _is_ significant,
+then the `full` model explains the data better than the additive,
+and in the next step you should use the full model (`modeltype='full'`).
 
 
 # Step 2: goodness of fit, outlier removal and final scale estimates
 
-After selection which model to use, we now are ready to estimate the final 
-scales by evaluate the goodness of fit. The same function `estimate_scales` 
-does this job when the flag `remove_outliers` is set to TRUE,
+After selection which model to use,
+we now are ready to estimate the final scales by evaluate the goodness of fit.
+The same function `estimate_scales` does this job when the flag `remove_outliers` is set to `TRUE`.
 
-The function will fit the model and run the goodness of fit evaluation (GoF). 
-Roughly speaking, the fitted model is used to simulate data coming from the
-same underlying parameters (scales values) and the same amount of trials. 
+The function will fit the model and run the goodness of fit evaluation (GoF).
+Roughly speaking,
+the fitted model is used to simulate data
+coming from the same underlying parameters (scales values)
+and the same amount of trials.
 Over many simulations we obtain the distribution of the model residuals,
-and the range obtained over simulations is compared with the observed residuals. 
-If the model assumptions hold, then the observed residuals should be in the range 
-from the simulated residuals. If that is the case, then a p-value calculated
-over the range will *not* be signifficant. In other words, 
-the GoF evaluation 'passes' when the p-value >= 0.05.
+and the range obtained over simulations is compared with the observed residuals.
+If the model assumptions hold,
+then the observed residuals should be in the range from the simulated residuals.
+If that is the case, then a p-value calculated over the range will *not* be signifficant.
+In other words,
+the GoF evaluation 'passes' when the $p >= 0.05$.
 
+Over the years we have observed that
+the GoF evaluation is very sensitive to outliers, for example lapses.
+We have thus developed a procedure in which we remove trials with high residuals
+(one by one, starting from the highest) and re-evaluate GoF.
+We repeat this procedure iteratively until the GoF test passes.
+Usually less than 20 trials (from a dataset of thousands)
+is needed to be removed in order for the GoF test to pass.
 
-Over the years we have observed that the GoF evaluation is very sensitive to
-outliers, for example lapses. We have thus developed a procedure in which 
-we remove trials with high residuals (one by one, starting from the 
-highest) and re-evaluate GoF. We repeat this procedure iteratively until
-the GoF test passes. Usually less than 20 trials (from a dataset of thousands) 
-is needed to be removed in order for the GoF test to pass. 
-
-This is what is implemented when the flag `remove_outliers` is set to TRUE,
+This is what is implemented when the flag `remove_outliers` is set to `TRUE`,
 and what we now do.
 
-We also pass the flag `do_bootstrap` as TRUE so that the function calculates
-bootstrap confidence intervals. The flag `normalized` is TRUE so that the final 
-scales are normalized to 1. 
+We also pass the flag `do_bootstrap` as `TRUE`
+so that the function calculates bootstrap confidence intervals.
+The flag `normalized` is `TRUE` so that the final scales are normalized
+such that the highest scale value is to 1.
 
 ```{r goodness of fit evaluation and outlier removal}
-estimate_scales(filename, 
-                modeltype="full", 
-                do_bootstrap=TRUE, 
-                remove_outliers=TRUE, 
-                normalized=TRUE,
-                savecsv=TRUE,
-                saverds=TRUE)
-               
+estimate_scales(filename,
+    modeltype = "full",
+    do_bootstrap = TRUE,
+    remove_outliers = TRUE,
+    normalized = TRUE,
+    savecsv = TRUE,
+    saverds = TRUE
+)
 ```
 
 
 The final output file is a CSV file containing the final scale estimates.
-This file ends with '...scales.csv'. The filename will contain the word
-'add' or 'full', depending on the model, and can contain 'norm' when the scales 
-are normalized to 1. 
-If some trials needed to be removed, the filename will also contain the word 'or', 
-which means "outliers removed".
-In that case you will also find a CSV file with filename that finishes with 
-`trialsremoved`. This file contains the trials that needed to be removed for the 
-GoF test to pass. The first column in this file is the row number of that trial
-on the original dataset file.
+This file ends with `'<...>.scales.csv'`.
+The filename will contain the word '`add`' or '`full`', depending on the model,
+and can contain '`norm`' when the scales are normalized to 1. 
+If some trials needed to be removed,
+the filename will also contain the word '`or`', which means "outliers removed".
+In that case you will also find a CSV file with filename that finishes with `trialsremoved`.
+This file contains the trials that needed to be removed for the  GoF test to pass.
+The first column in this file is the row number of that trial on the original dataset file.
 
-We also save two additional files (bootsamples and the Rds file) that are not
-used in the following parts of the analysis pipeline but that are nonetheless 
-saved for archiving purposes. 
-
-
-
+We also save two additional files
+(`bootsamples` and the `Rds` file)
+that are not used in the following parts of the analysis pipeline
+but that are nonetheless saved for archiving purposes.
