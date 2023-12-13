@@ -425,14 +425,14 @@ estimate_scales <- function(filepath,
     trimmed_data <- removal$trimmed_data
     gof <- removal$gof
     if (savecsv) {
+      trimfix <- "-trimmed"
       write.csv(trimmed_data,
-        file.path(directory, paste(rootname, ".trimmed.csv", sep = "")),
+        file.path(directory, paste(rootname, trimfix, ".csv", sep = "")),
         quote = FALSE, row.names = FALSE
       )
     }
-    suffix <- "-trim"
   } else {
-    suffix <- ""
+    trimfix <- ""
   }
 
   # Extract scale values, reformatting names of rows and columns
@@ -459,18 +459,13 @@ estimate_scales <- function(filepath,
   scalevalues <- data.frame(intensity = row.names(scalevalues), scalevalues)
   scalevalues <- pivot_scales(scalevalues)
 
-
-  # filenames where to save
-  rdsfile2save <- file.path(directory, paste(rootname, "-", modeltype, suffix, ".Rds", sep = ""))
-  scales2save <- file.path(directory, paste(rootname, "-", modeltype, normsuffix, suffix, "-scales.csv", sep = ""))
-
   # Bootstrap CIs
   if (do_bootstrap) {
     cat("bootstrapping the model to calculate confidence intervals\n")
 
     filepath_bootsamples <- file.path(
       directory,
-      paste(rootname, "-", modeltype, normsuffix, suffix,
+      paste(rootname, trimfix, "-", modeltype, normsuffix,
         ".bootsamples.csv",
         sep = ""
       )
@@ -498,34 +493,39 @@ estimate_scales <- function(filepath,
     scalevalues <- merge(tmp, ci_high, by = c("intensity", "context"), sort = FALSE)
 
     colnames(scalevalues) <- c("intensity", "context", "scale", "scale_CI_low", "scale_CI_high")
+  }
 
-
-
-
-    # save results in Rds file
-    if (saverds && remove_outliers) {
-      print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, bootstrap$bootstrap, gof, file = rdsfile2save)
-    } else if (saverds) {
-      print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, bootstrap$bootstrap, file = rdsfile2save)
-    }
-  } # end if bootstrap
-  else {
-    # save results in Rds file
-    if (saverds && remove_outliers) {
-      print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, gof, file = rdsfile2save)
-    } else if (saverds) {
-      print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, file = rdsfile2save)
+  # Save to Rda
+  if (saverds) {
+    filepath_rda <- file.path(
+      directory,
+      paste(rootname, trimfix, "-", modeltype,
+        ".Rda",
+        sep = ""
+      )
+    )
+    print(paste("saving in..", filepath_rda, sep = ""))
+    if (do_bootstrap && remove_outliers) {
+      save(model, bootstrap, gof, file = filepath_rda)
+    } else if (do_bootstrap) {
+      save(model, bootstrap, file = filepath_rda)
+    } else if (remove_outliers) {
+      save(model, gof, file = filepath_rda)
+    } else {
+      save(model, file = filepath_rda)
     }
   }
 
-
-  # saving as long-format CSV file
+  # Export to CSV
   if (savecsv) {
-    write.csv(scalevalues, file = scales2save, row.names = FALSE, quote = FALSE)
+    filepath_scales <- file.path(
+      directory,
+      paste(rootname, trimfix, "-", modeltype, normsuffix,
+        ".scales.csv",
+        sep = ""
+      )
+    )
+    write.csv(scalevalues, file = filepath_scales, row.names = FALSE, quote = FALSE)
   }
 
   cat("********** Estimating scales - END **********\n")
