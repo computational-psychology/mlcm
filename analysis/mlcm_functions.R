@@ -269,6 +269,67 @@ remove_outliers <- function(
 }
 
 
+bootstrap_CIs <- function( # nolint: object_name_linter.
+    model,
+    modeltype,
+    normalized = FALSE,
+    save_samples = "",
+    nsim = 1000,
+    ncores = 1,
+    epsilon = 1e-4) {
+  # Bootstrap sample
+  bootstrap <- pboot.mlcm(model,
+    nsim = nsim,
+    ncores = ncores,
+    control = glm.control(epsilon = epsilon)
+  )
+
+  # Calculate 95% percentile confidence intervals from the bootstrap samples
+  samples <- bootstrap$boot.samp
+
+  # getting number of contexts
+  n_contexts <- as.integer(ncol(model$pscale))
+
+  ## if the model is additive, we need to rearrange the bootstrap samples a bit
+  ## to get the full matrix
+  if (modeltype == "add") {
+    additiveshift <- samples[nrow(samples), ]
+
+    context1 <- samples[1:nrow(samples) - 1, ]
+    context2 <- rbind(rep(0, nsim), samples[1:nrow(samples) - 1, ]) + additiveshift
+
+    samples <- rbind(context1, context2)
+  }
+
+  # if we want normalized scales, we divide the samples matrix by the maximum
+  # in each sample.
+  if (normalized) {
+    maximum <- samples[nrow(samples), ]
+    samples <- t(t(samples) / maximum)
+  }
+
+  # save bootstrap samples in CSV file as well
+  if (!save_samples == "") {
+    write.csv(t(samples), file = save_samples)
+  }
+
+  # samples a matrix of size n params x n boostrap samples
+  # we then calculate for each row (each parameter) the percentiles
+  bootsample_low <- c(0, apply(samples, 1, quantile, probs = 0.025))
+  bootsample_high <- c(0, apply(samples, 1, quantile, probs = 0.975))
+
+  # reformat to a matrix
+  dim(bootsample_low) <- c(length(bootsample_low) / n_contexts, n_contexts)
+  dim(bootsample_high) <- c(length(bootsample_high) / n_contexts, n_contexts)
+
+  return(list(
+    bootstrap = bootstrap,
+    CI_low = bootsample_low,
+    CI_high = bootsample_high
+  ))
+}
+
+
 #' Pivot dataframe of scale-values to long-format
 #'
 #' @param scalevalues dataframe of scalevalues in wide format
@@ -364,7 +425,10 @@ estimate_scales <- function(filepath,
     trimmed_data <- removal$trimmed_data
     gof <- removal$gof
     if (savecsv) {
-      write.csv(trimmed_data, file.path(directory, paste(rootname, ".trimmed.csv", sep = "")), quote = FALSE, row.names = FALSE)
+      write.csv(trimmed_data,
+        file.path(directory, paste(rootname, ".trimmed.csv", sep = "")),
+        quote = FALSE, row.names = FALSE
+      )
     }
     suffix <- "-trim"
   } else {
@@ -399,72 +463,52 @@ estimate_scales <- function(filepath,
   # filenames where to save
   rdsfile2save <- file.path(directory, paste(rootname, "-", modeltype, suffix, ".Rds", sep = ""))
   scales2save <- file.path(directory, paste(rootname, "-", modeltype, normsuffix, suffix, "-scales.csv", sep = ""))
-  bootscales2save <- file.path(directory, paste(rootname, "-", modeltype, normsuffix, suffix, "-bootsamples.csv", sep = ""))
 
-  # Bootsrap CIs
+  # Bootstrap CIs
   if (do_bootstrap) {
-    ### calculating confidence intervals
     cat("bootstrapping the model to calculate confidence intervals\n")
 
-    # we first bootstrap the model
-    obs.boot <- pboot.mlcm(model, nsim = nsim, ncores = ncores, control = glm.control(epsilon = epsilon))
-    # obs.boot <- boot.mlcm(obs, nsim=nsim, control=glm.control(epsilon=epsilon))
+    filepath_bootsamples <- file.path(
+      directory,
+      paste(rootname, "-", modeltype, normsuffix, suffix,
+        ".bootsamples.csv",
+        sep = ""
+      )
+    )
+    bootstrap <- bootstrap_CIs(model,
+      modeltype,
+      normalized = normalized,
+      save_samples = filepath_bootsamples,
+      nsim = nsim,
+      ncores = ncores,
+      epsilon = epsilon
+    )
 
-    ## here  we manually calculate the percentile confidence intervals from the bootstrap samples
-    # with 95 % confidence
-    samples <- obs.boot$boot.samp
+    # Format CI bounds same as scale values
+    ci_low <- data.frame(intensity = 1:nrow(bootstrap$CI_low), bootstrap$CI_low)
+    colnames(ci_low) <- c("intensity", "Context.1", "Context.2")
+    ci_low <- pivot_scales(ci_low)
 
-    # getting number of contexts
-    nc <- as.integer(ncol(model$pscale))
+    ci_high <- data.frame(intensity = 1:nrow(bootstrap$CI_high), bootstrap$CI_high)
+    colnames(ci_high) <- c("intensity", "Context.1", "Context.2")
+    ci_high <- pivot_scales(ci_high)
 
-    ## if the model is additive, we need to rearrange the bootstrap samples a bit
-    ## to get the full matrix
-    if (modeltype == "add") {
-      additiveshift <- samples[nrow(samples), ]
+    # Merge scale values, CI bounds
+    tmp <- merge(scalevalues, ci_low, by = c("intensity", "context"), sort = FALSE)
+    scalevalues <- merge(tmp, ci_high, by = c("intensity", "context"), sort = FALSE)
 
-      context1 <- samples[1:nrow(samples) - 1, ]
-      context2 <- rbind(rep(0, nsim), samples[1:nrow(samples) - 1, ]) + additiveshift
-
-      samples <- rbind(context1, context2)
-    }
-
-    # if we want normalized scales, we divide the samples matrix by the maximum
-    # in each sample.
-    if (normalized) {
-      maximum <- samples[nrow(samples), ]
-      samples <- t(t(samples) / maximum)
-    }
+    colnames(scalevalues) <- c("intensity", "context", "scale", "scale_CI_low", "scale_CI_high")
 
 
-    # samples a matrix of size n params x n boostrap samples
-    # we then calculate for each row (each parameter) the percentiles
-    obs.low <- c(0, apply(samples, 1, quantile, probs = 0.025))
-    obs.high <- c(0, apply(samples, 1, quantile, probs = 0.975))
-
-    # reformat to a matrix
-    dim(obs.low) <- c(length(obs.low) / nc, nc)
-    dim(obs.high) <- c(length(obs.high) / nc, nc)
-
-    # the confidence intervals for each scale estimate are
-    # lower bound:
-    # print(obs.low)
-
-    # upper bound:
-    # print(obs.high)
 
 
     # save results in Rds file
     if (saverds && remove_outliers) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, obs.boot, gof, file = rdsfile2save)
+      save(model, bootstrap$bootstrap, gof, file = rdsfile2save)
     } else if (saverds) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(model, obs.boot, file = rdsfile2save)
-    }
-
-    # save bootstrap samples in CSV file as well
-    if (savecsv) {
-      write.csv(t(samples), file = bootscales2save)
+      save(model, bootstrap$bootstrap, file = rdsfile2save)
     }
   } # end if bootstrap
   else {
@@ -477,27 +521,6 @@ estimate_scales <- function(filepath,
       save(model, file = rdsfile2save)
     }
   }
-
-
-
-
-  if (do_bootstrap) {
-    # getting boundaries of confidence intervals also in the same format as scales
-    obs.lowci <- data.frame(luminance = 1:nrow(obs.low), obs.low)
-    colnames(obs.lowci) <- c("luminance", "Context.1", "Context.2")
-    obs.lowci <- pivot_scales(obs.lowci)
-
-    obs.highci <- data.frame(luminance = 1:nrow(obs.high), obs.high)
-    colnames(obs.highci) <- c("luminance", "Context.1", "Context.2")
-    obs.highci <- pivot_scales(obs.highci)
-
-    # merging long scales dataframe with CI low and high boundaries
-    tmp <- merge(obs.scales, obs.lowci, by = c("luminance", "context"), sort = FALSE)
-    obs.scales <- merge(tmp, obs.highci, by = c("luminance", "context"), sort = FALSE)
-
-    colnames(obs.scales) <- c("luminance", "context", "scale", "scale_CI_low", "scale_CI_high")
-  }
-
 
 
   # saving as long-format CSV file
