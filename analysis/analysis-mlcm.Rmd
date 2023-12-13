@@ -7,6 +7,8 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE)
+here::i_am("surround_brightness/analysis/analysis-mlcm.Rmd")
+library(here)
 ```
 
 # Imports
@@ -17,7 +19,7 @@ As shown below, the main function to be used is called `estimate_scales`.
 Other imported functions are helper functions.
 
 ```{r sourcing function definitions}
-source("mlcm_functions.R")
+source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
 ```
 
 
@@ -26,7 +28,7 @@ source("mlcm_functions.R")
 We need the path to the CSV file to be analysed.
 
 ```{r estimate additive model}
-filename <- "../data/example-data.csv"
+filename <- here("surround_brightness", "data", "results", "example-data.csv")
 ```
 
 The CSV file should be already in the format 'understood' by MLCM:
