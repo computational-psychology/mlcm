@@ -25,7 +25,7 @@ library(snow)
 #' Same parameters as boot.mlcm, with the addition of
 #' @param ncores number of cores. Default 1.
 #'
-pboot.mlcm <- function(x, nsim, ncores = 1, ...) {
+pboot.mlcm <- function(x, nsim, ncores = 1, ...) { # nolint: object_name_linter.
   workers <- replicate(ncores, "localhost")
 
   # working with snow
@@ -39,7 +39,7 @@ pboot.mlcm <- function(x, nsim, ncores = 1, ...) {
 
   clusterExport(cl, c("rsim", "d", "x"), envir = environment())
 
-  bts.samp <- parApply(cl, rsim, 2, function(y, dd) {
+  bts.samp <- parApply(cl, rsim, 2, function(y, dd) { # nolint: object_name_linter.
     psct <- glm.fit(dd, y, family = binomial(x$link), ...)$coefficients
     names(psct) <- x$stimulus[-1]
     psct
@@ -64,7 +64,12 @@ pboot.mlcm <- function(x, nsim, ncores = 1, ...) {
 #'
 #' Same parameters as boot.mlcm, with the addition of
 #' @param ncores number of cores. Default 1.
-pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRUE, ncores = 1, ...) {
+pbinom.diagnostics <- function( # nolint: object_name_linter.
+    obj,
+    nsim = 200,
+    type = "deviance",
+    warn = FALSE,
+    ncores = 1, ...) {
   workers <- replicate(ncores, "localhost")
 
   # working with snow
@@ -74,9 +79,9 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
   # loads MLCM package on each of the workers
   clusterEvalQ(cl, library(MLCM))
 
-  if (no.warn) {
-    old.opt <- options(warn = -1)
-    on.exit(options(old.opt))
+  if (!warn) {
+    old_opt <- options(warn = -1)
+    on.exit(options(old_opt))
   }
 
   n <- length(fitted(obj))
@@ -89,17 +94,16 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
   clusterExport(cl, c("obj", "n", "d", "type", "ys"), envir = environment())
 
   res <- parSapply(cl, seq_len(nsim), function(x, obj) {
-    # 		ys <- rbinom(n, 1, fitted(obj))
     d2 <- cbind(resp = ys[, x], d)
-    lnk <- obj$obj$family$link
-    br <- glm(resp ~ . - 1, binomial(link = lnk), d2, ...)
-    rs <- residuals(br, type = type)
-    rsd <- sort(rs)
-    fv.sort <- sort(fitted(br), index.return = TRUE)
-    rs <- rs[fv.sort$ix]
-    rs <- rs > 0
-    runs <- sum(rs[1:(n - 1)] != rs[2:n])
-    list(resid = as.vector(rsd), NumRuns = runs)
+    link <- obj$obj$family$link
+    br <- glm(resp ~ . - 1, binomial(link = link), d2, ...)
+    residuals <- residuals(br, type = type)
+    residuals_sorted <- sort(residuals)
+    fv_sorted <- sort(fitted(br), index.return = TRUE)
+    residuals <- residuals[fv_sorted$ix]
+    residuals <- residuals > 0
+    runs <- sum(residuals[1:(n - 1)] != residuals[2:n])
+    list(resid = as.vector(residuals_sorted), NumRuns = runs)
   }, obj = obj)
 
   # after all done, stops cluster
@@ -119,12 +123,12 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
   fres$resid <- apply(fres$resid, 2, sort)
   fres$Obs.resid <- residuals(obj$obj, type = type)
   rs <- residuals(obj$obj, type = type)
-  fv.sort <- sort(fitted(obj), index.return = TRUE)
-  rs <- rs[fv.sort$ix]
+  fv_sorted <- sort(fitted(obj), index.return = TRUE)
+  rs <- rs[fv_sorted$ix]
   rs <- rs > 0
-  obs.runs <- sum(rs[1:(n - 1)] != rs[2:n])
-  nr <- sum(fres$NumRuns > obs.runs)
-  fres$ObsRuns <- obs.runs
+  obs_runs <- sum(rs[1:(n - 1)] != rs[2:n])
+  nr <- sum(fres$NumRuns > obs_runs)
+  fres$ObsRuns <- obs_runs
   fres$p <- 1 - nr / nsim
   class(fres) <- c("mlcm.diag", "list")
   fres
@@ -145,37 +149,46 @@ pbinom.diagnostics <- function(obj, nsim = 200, type = "deviance", no.warn = TRU
 #' obs <- mlcm(data)
 #' obs.diags <- binom.diagnostics(obs)
 #' percentage_residuals_in_envelope(obs.diags)
-percentage_residuals_in_envelope <- function(x) {
+perc_resid_in_envl <- function(x) {
   nsim <- dim(x$resid)[1]
   n <- dim(x$resid)[2]
   alpha <- 0.025
 
-  splUpper <- smooth.spline(x$resid[alpha * nsim, ], (1:n - 0.5) / n)
-  splLower <- smooth.spline(x$resid[(1 - alpha) * nsim, ], (1:n - 0.5) / n)
-  splObs <- smooth.spline(sort(x$Obs.resid), (1:n - 0.5) / n)
+  spline_upper <- smooth.spline(x$resid[alpha * nsim, ], (1:n - 0.5) / n)
+  spline_lower <- smooth.spline(x$resid[(1 - alpha) * nsim, ], (1:n - 0.5) / n)
+  spline_obs <- smooth.spline(sort(x$Obs.resid), (1:n - 0.5) / n)
 
   nfit <- 0
-  for (i in (1:length(splObs$x))) {
-    xval <- (splObs$x)[i]
-    if ((predict(splObs, xval)$y < predict(splUpper, xval)$y) && (predict(splObs, xval)$y > predict(splLower, xval)$y)) {
+  for (i in (1:length(spline_obs$x))) {
+    xval <- (spline_obs$x)[i]
+    if (
+      (predict(spline_obs, xval)$y < predict(spline_upper, xval)$y) &&
+        (predict(spline_obs, xval)$y > predict(spline_lower, xval)$y)
+    ) {
       nfit <- nfit + 1
     }
   }
-  percentage <- (nfit * 100) / length(splObs$x)
+  percentage <- (nfit * 100) / length(spline_obs$x)
   return(percentage)
 }
 
 
 
 
-pivot_table_scales <- function(obs.scales) {
-  obs.long <- reshape(obs.scales,
+
+#' Pivot dataframe of scale-values to long-format
+#'
+#' @param scalevalues dataframe of scalevalues in wide format
+#'
+#' @return long-fromat of scale values (1 column per context)
+pivot_scales <- function(scalevalues) {
+  scalevalues_long <- reshape(scalevalues,
     varying = c("Context.1", "Context.2"),
     timevar = "context", v.names = "scale", direction = "long"
   )
-  obs.long <- subset(obs.long, select = -id) # removing id column
+  scalevalues_long <- subset(scalevalues_long, select = -id) # removing id column
 
-  return(obs.long)
+  return(scalevalues_long)
 }
 
 
@@ -201,7 +214,16 @@ pivot_table_scales <- function(obs.scales) {
 #'
 #' @return None. Output scales are saved as CSV files.
 #'
-estimate_scales <- function(filename,
+#' epsilon is the resolution given to the optimization routine. At a difference
+#' of epsilon is where the algorithm stops. We have issues with {mlcm}'s default
+#' epsilon for the full model (1e-4). It tends to be stuck at local minima
+#' and overestimates the scale values. This happens particularly bad for the
+#' bootstrap samples. I (GA) manually and by hand decreased the epsilon value
+#' to a value that does not give those results. It's a hack but it seems
+#' to work. Alternatively one would have to try another optimization algorithm
+#' more robust to local minima.
+#'
+estimate_scales <- function(filepath,
                             modeltype = "full",
                             do_bootstrap = FALSE,
                             nsim = 1000,
@@ -209,40 +231,31 @@ estimate_scales <- function(filename,
                             plotflag = FALSE,
                             normalized = FALSE,
                             savecsv = FALSE,
-                            saverds = FALSE) {
-  ncores <- 4
-
+                            saverds = FALSE,
+                            epsilon = 1e-4,
+                            ncores = 4) {
   cat("********** Estimating scales - START **********\n")
-  # epsilon is the resolution given to the optimization routine. At a difference
-  # of epsilon is where the algorithm stops. We have issues with the default
-  # epsilon for the full model. It tends to be stuck at local minima
-  # and overestimates the scale values. This happens particularly bad for the
-  # bootstrap samples. I manually and by hand decreased the epsilon value
-  # to a value that does not give those results. It's a hack but it seems
-  # to work. Alternatively one would have to try another optimization algorithm
-  # more robust to local minima. GA.
-  # # default is epsilon = 1e-8.
-  epsilon <- 1e-4
+  filename <- basename(filepath)
+  rootname <- strsplit(filename, ".csv")[[1]]
+  directory <- dirname(filepath)
 
-  name <- basename(filename)
-  rootname <- strsplit(name, ".csv")[[1]]
-  dname <- dirname(filename)
+  # Load data
+  observed_data <- read.csv(filepath, sep = ",")[c("Resp", "L1", "L2", "C1", "C2")]
+  cat(paste("number of trials:", nrow(observed_data), sep = " "))
 
-  df <- read.csv(filename, sep = ",")
-  keeps <- c("Resp", "L1", "L2", "C1", "C2")
-  df1 <- df[keeps]
-  cat(paste("number of trials:", nrow(df1), sep = " "))
-
-
-  ### estimating the scales
-  obs <- mlcm(df1, model = modeltype, method = "glm.fit", lnk = "probit", control = glm.control(epsilon = epsilon))
-  print(obs)
-
+  # Estimating perceptaul scales
+  model <- mlcm(observed_data,
+    model = modeltype,
+    method = "glm.fit",
+    lnk = "probit",
+    control = glm.control(epsilon = epsilon)
+  )
+  print(model)
   if (plotflag) {
-    plot(obs, type = "b")
+    plot(model, type = "b")
   }
 
-  # refitting by filtering trials with high residuals. take the high residuals of the full model
+  # Remove trials with high residuals (full model) and refit model
   if (remove_outliers) {
     # if we're calculating the additive model, we get the outliers from the residuals of the full model.
     # thus we need to quicky fit the full model first....
@@ -305,42 +318,43 @@ estimate_scales <- function(filename,
     suffix <- ""
   }
 
-  # scale values, reformatting names of rows and columns
-  obs.scales <- obs$pscale
-  colnames(obs.scales) <- c("Context.1", "Context.2")
-  for (i in 1:nrow(obs.scales)) {
-    rownames(obs.scales)[i] <- i
+  # Extract scale values, reformatting names of rows and columns
+  scalevalues <- model$pscale
+  colnames(scalevalues) <- c("Context.1", "Context.2")
+  for (i in 1:nrow(scalevalues)) {
+    rownames(scalevalues)[i] <- i
   }
-
-
-  #
   if (modeltype == "add") {
-    additiveshift <- obs$obj$coefficients[length(obs$obj$coefficients)]
-    obs.scales[, 2] <- obs.scales[, 1] + additiveshift
+    additiveshift <- model$obj$coefficients[length(model$obj$coefficients)]
+    scalevalues[, 2] <- scalevalues[, 1] + additiveshift
   }
 
 
-  # we normalize the scale values
+  # Normalize the scale values
   if (normalized) {
-    obs.scales <- obs.scales / obs.scales[nrow(obs.scales), 2]
+    scalevalues <- scalevalues / scalevalues[nrow(scalevalues), 2]
     normsuffix <- "-norm"
   } else {
     normsuffix <- ""
   }
 
+  # Reformat to long-format
+  scalevalues <- data.frame(luminance = row.names(scalevalues), scalevalues)
+  scalevalues <- pivot_scales(scalevalues)
+
 
   # filenames where to save
-  rdsfile2save <- file.path(dname, paste(rootname, "-", modeltype, suffix, ".Rds", sep = ""))
-  scales2save <- file.path(dname, paste(rootname, "-", modeltype, normsuffix, suffix, "-scales.csv", sep = ""))
-  bootscales2save <- file.path(dname, paste(rootname, "-", modeltype, normsuffix, suffix, "-bootsamples.csv", sep = ""))
+  rdsfile2save <- file.path(directory, paste(rootname, "-", modeltype, suffix, ".Rds", sep = ""))
+  scales2save <- file.path(directory, paste(rootname, "-", modeltype, normsuffix, suffix, "-scales.csv", sep = ""))
+  bootscales2save <- file.path(directory, paste(rootname, "-", modeltype, normsuffix, suffix, "-bootsamples.csv", sep = ""))
 
-  #
+  # Bootsrap CIs
   if (do_bootstrap) {
     ### calculating confidence intervals
     cat("bootstrapping the model to calculate confidence intervals\n")
 
     # we first bootstrap the model
-    obs.boot <- pboot.mlcm(obs, nsim = nsim, ncores = ncores, control = glm.control(epsilon = epsilon))
+    obs.boot <- pboot.mlcm(model, nsim = nsim, ncores = ncores, control = glm.control(epsilon = epsilon))
     # obs.boot <- boot.mlcm(obs, nsim=nsim, control=glm.control(epsilon=epsilon))
 
     ## here  we manually calculate the percentile confidence intervals from the bootstrap samples
@@ -348,7 +362,7 @@ estimate_scales <- function(filename,
     samples <- obs.boot$boot.samp
 
     # getting number of contexts
-    nc <- as.integer(ncol(obs$pscale))
+    nc <- as.integer(ncol(model$pscale))
 
     ## if the model is additive, we need to rearrange the bootstrap samples a bit
     ## to get the full matrix
@@ -389,10 +403,10 @@ estimate_scales <- function(filename,
     # save results in Rds file
     if (saverds && remove_outliers) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(obs, obs.boot, obs.diags, per, p, file = rdsfile2save)
+      save(model, obs.boot, obs.diags, per, p, file = rdsfile2save)
     } else if (saverds) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(obs, obs.boot, file = rdsfile2save)
+      save(model, obs.boot, file = rdsfile2save)
     }
 
     # save bootstrap samples in CSV file as well
@@ -404,28 +418,25 @@ estimate_scales <- function(filename,
     # save results in Rds file
     if (saverds && remove_outliers) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(obs, obs.diags, per, p, file = rdsfile2save)
+      save(model, obs.diags, per, p, file = rdsfile2save)
     } else if (saverds) {
       print(paste("saving in..", rdsfile2save, sep = ""))
-      save(obs, file = rdsfile2save)
+      save(model, file = rdsfile2save)
     }
   }
 
 
-  # save scales in CSV file
-  # reformatting to long
-  obs.scales <- data.frame(luminance = row.names(obs.scales), obs.scales)
-  obs.scales <- pivot_table_scales(obs.scales)
+
 
   if (do_bootstrap) {
     # getting boundaries of confidence intervals also in the same format as scales
     obs.lowci <- data.frame(luminance = 1:nrow(obs.low), obs.low)
     colnames(obs.lowci) <- c("luminance", "Context.1", "Context.2")
-    obs.lowci <- pivot_table_scales(obs.lowci)
+    obs.lowci <- pivot_scales(obs.lowci)
 
     obs.highci <- data.frame(luminance = 1:nrow(obs.high), obs.high)
     colnames(obs.highci) <- c("luminance", "Context.1", "Context.2")
-    obs.highci <- pivot_table_scales(obs.highci)
+    obs.highci <- pivot_scales(obs.highci)
 
     # merging long scales dataframe with CI low and high boundaries
     tmp <- merge(obs.scales, obs.lowci, by = c("luminance", "context"), sort = FALSE)
@@ -438,10 +449,10 @@ estimate_scales <- function(filename,
 
   # saving as long-format CSV file
   if (savecsv) {
-    write.csv(obs.scales, file = scales2save, row.names = FALSE)
+    write.csv(scalevalues, file = scales2save, row.names = FALSE, quote = FALSE)
   }
 
   cat("********** Estimating scales - END **********\n")
   cat("*********************************************\n")
-  return(obs)
+  return(model)
 }
