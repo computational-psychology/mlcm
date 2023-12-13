@@ -8,26 +8,29 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE)
 here::i_am("surround_brightness/analysis/analysis-mlcm.Rmd")
-library(here)
 ```
 
-# Imports
+## Setup
 
-We first import functions that execute the analysis itself.
-These functions depends on the packages `MLCM` and `snow`.
-As shown below, the main function to be used is called `estimate_scales`.
-Other imported functions are helper functions.
+The MLCM scale estimation is performed primarily by the `{mlcm}` package.
+Here we have encapsulated the estimation in a higher level function `estimate_scales()`,
+which also adds additional functionality.
+This can be found in `mlcm_functions.R` here, which needs to be `source`d.
+These functions depends on the packages `{mclm}` and `{snow}`.
+
+(Here we also use the package `{here}` for more flexible and portable paths)
 
 ```{r sourcing function definitions}
+library(here)
 source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
 ```
 
 
-# Dataset
+## Step 0: Dataset
 
 We need the path to the CSV file to be analysed.
 
-```{r estimate additive model}
+```{r dataset}
 filename <- here("surround_brightness", "data", "results", "example-data.csv")
 ```
 
@@ -46,9 +49,9 @@ For the intensity dimension there is no limit or restriction on the amount of va
 However, the current implementation allows only 2 contexts,
 i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 
-# Step 1: model selection
+## Step 1: model selection
 
-## Logic
+### Logic
 The first step in the analysis is to fit the two possible models that MLCM provides:
 additive conjoint measurement (`add`)
 or the full, saturated model (`full`).
@@ -68,7 +71,7 @@ significantly better at explaining the data as the additive one,
 given that it has more free parameters and is thus expected to always fit better.
 
 
-## Estimates scales with additive model
+### Estimates scales with additive model
 
 We call the function `estimate_scales` to do the fit.
 The parameter `modeltype` controls which model we want to fit (`add` or `full`).
@@ -78,20 +81,19 @@ and we do not want to calculate bootstrap confidence intervals yet.
 
 ```{r}
 model_additive <- estimate_scales(filename,
-    modeltype = "add",
-    do_bootstrap = FALSE
+  modeltype = "add"
 )
 ```
 
-We see the resulting scales values for the first context (column `L`),
+We see the resulting scales values for the first context (column `I`),
 and the single additive shift factor for the second context (column `C`).
 
-## Estimate scales with `full` ('saturated') model
+### Estimate scales with `full` ('saturated') model
 
 ```{r estimate full model}
 model_full <- estimate_scales(filename,
-    modeltype = "full",
-    do_bootstrap = FALSE
+  modeltype = "full",
+  savecsv = TRUE
 )
 ```
 Here we see that for each combination of `L` and `C` we obtain a scale value.
@@ -102,8 +104,12 @@ This only means that for some comparisons
 the observer was perfectly consistent (always chose the same answer).
 This is expected for easy trials.
 
+By passing `savecsv = TRUE`, we are also asking for
+the resulting scales to be saved to`'<...>.scales.csv'`.
+The filename will contain the word '`add`' or '`full`', depending on the model.
 
-## Model comparison
+
+### Model comparison
 
 We now compare the two models with each other.
 This is done using the likelihood ratio test
@@ -129,7 +135,7 @@ then the `full` model explains the data better than the additive,
 and in the next step you should use the full model (`modeltype='full'`).
 
 
-# Step 2: goodness of fit, outlier removal and final scale estimates
+## Step 2: goodness of fit, outlier removal
 
 After selection which model to use,
 we now are ready to estimate the final scales by evaluate the goodness of fit.
@@ -159,34 +165,46 @@ is needed to be removed in order for the GoF test to pass.
 This is what is implemented when the flag `remove_outliers` is set to `TRUE`,
 and what we now do.
 
+```{r goodness of fit evaluation and outlier removal}
+estimate_scales(filename,
+  modeltype = "full",
+  remove_outliers = TRUE,
+  savecsv = TRUE
+)
+trimmed_data <- here("surround_brightness", "data", "results", "example-data-trimmed.csv")
+```
+
+
+If some trials needed to be removed,
+the filename will also contain the word '`trimmed`', which means the outliers  were "trimmed" out.
+In that case you will also find a CSV file with the filename ennding in `.outliers`.
+This file contains the trials that needed to be removed for the  GoF test to pass.
+The first column in this file is the row number of that trial on the original dataset file.
+
+## Step 3: final scale estimates, with bootstrapped confidence intervals
+
 We also pass the flag `do_bootstrap` as `TRUE`
 so that the function calculates bootstrap confidence intervals.
 The flag `normalized` is `TRUE` so that the final scales are normalized
 such that the highest scale value is to 1.
 
-```{r goodness of fit evaluation and outlier removal}
-estimate_scales(filename,
-    modeltype = "full",
-    do_bootstrap = TRUE,
-    remove_outliers = TRUE,
-    normalized = TRUE,
-    savecsv = TRUE,
-    saverds = TRUE
+```{r bootstrap}
+estimate_scales(trimmed_data,
+  modeltype = "full",
+  remove_outliers = FALSE,
+  do_bootstrap = TRUE,
+  normalized = TRUE,
+  savecsv = TRUE,
+  saverds = TRUE,
 )
 ```
 
 
 The final output file is a CSV file containing the final scale estimates.
 This file ends with `'<...>.scales.csv'`.
-The filename will contain the word '`add`' or '`full`', depending on the model,
-and can contain '`norm`' when the scales are normalized to 1. 
-If some trials needed to be removed,
-the filename will also contain the word '`or`', which means "outliers removed".
-In that case you will also find a CSV file with filename that finishes with `trialsremoved`.
-This file contains the trials that needed to be removed for the  GoF test to pass.
-The first column in this file is the row number of that trial on the original dataset file.
+and can contain '`norm`' when the scales are normalized to 1.
 
 We also save two additional files
-(`bootsamples` and the `Rds` file)
-that are not used in the following parts of the analysis pipeline
-but that are nonetheless saved for archiving purposes.
+-- `<...>.bootsamples.csv` and an `<...>.Rda` file.
+These are used for achival purposes,
+but not in the rest of the analysis pipeline.
