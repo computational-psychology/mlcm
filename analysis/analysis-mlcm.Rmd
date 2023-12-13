@@ -37,12 +37,12 @@ The CSV file should be already in the format 'understood' by MLCM:
 - the first column is called 'Resp', which contains the binary response to the trial.
 - the four columns containing the stimuli indices presented in that trial.
 
-In this case we use `L1` and `C1`
-to code the luminance and context of the first stimulus, respectively.
-Similarly `L2` and `C2` code the luminance and context of the second stimulus.
+In this case we use `I1` and `C1`
+to code the intensity and context of the first stimulus, respectively.
+Similarly `I2` and `C2` code the intensity and context of the second stimulus.
 The entries are integers starting from `1`.
 
-For the luminance dimension there is no limit or restriction on the amount of values.
+For the intensity dimension there is no limit or restriction on the amount of values.
 However, the current implementation allows only 2 contexts,
 i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 

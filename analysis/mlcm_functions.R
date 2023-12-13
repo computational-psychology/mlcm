@@ -6,7 +6,7 @@
 ## samples used for the CI estimation, and the raw R objects as a .rds file.
 ##
 ## Limitations:
-## - the stimulus dimensions are hard coded (luminance and context)
+## - the stimulus dimensions are hard coded (intensity and context)
 ## - it allows only 2 contexts (for ex. in white and in black, for White's).
 ##   code would need to be refactored further to make it more general.
 ##
@@ -240,7 +240,7 @@ estimate_scales <- function(filepath,
   directory <- dirname(filepath)
 
   # Load data
-  observed_data <- read.csv(filepath, sep = ",")[c("Resp", "L1", "L2", "C1", "C2")]
+  observed_data <- read.csv(filepath, sep = ",")[c("Resp", "I1", "I2", "C1", "C2")]
   cat(paste("number of trials:", nrow(observed_data), sep = " "))
 
   # Estimating perceptaul scales
@@ -339,7 +339,7 @@ estimate_scales <- function(filepath,
   }
 
   # Reformat to long-format
-  scalevalues <- data.frame(luminance = row.names(scalevalues), scalevalues)
+  scalevalues <- data.frame(intensity = row.names(scalevalues), scalevalues)
   scalevalues <- pivot_scales(scalevalues)
 
 
