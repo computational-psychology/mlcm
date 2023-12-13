@@ -173,6 +173,24 @@ perc_resid_in_envl <- function(x) {
 }
 
 
+goodness_of_fit <- function(model, epsilon = 1e-4, ncores = 1, plots = FALSE) {
+  model_diags <- pbinom.diagnostics(model,
+    nsim = 1000, ncores = ncores,
+    control = glm.control(epsilon = epsilon)
+  )
+  if (plots) {
+    plot(model_diags)
+  }
+  percentage <- perc_resid_in_envl(model_diags)
+  p_value <- model_diags$p
+
+  return(list(
+    model_diags = model_diags,
+    percentage = percentage,
+    p_value = p_value
+  ))
+}
+
 
 
 
