@@ -94,26 +94,26 @@ def reindex_results(df):
 
 
 if __name__ == "__main__":
-    participant = "NJ-PILOT"
+    for participant in participants:
+        merged = merge_results(participant_results[participant])
+        merged.to_csv(resultspath / participant / f"{participant}.csv", sep=",", index=False)
+        # print(merged)
+        per_stim = merged.groupby("stim")
+        # print(per_stim)
 
-    merged = merge_results(participant_results[participant])
-    # print(merged)
-    per_stim = merged.groupby("stim")
-    # print(per_stim)
+        # stim_name = "checkerboard"
+        # subset = merged.query(f"stim == '{stim_name}'")
+        # print(subset)
+        # reindexed = reindex_results(subset)
+        # print(reindexed)
+        # reindexed.to_csv(
+        #     resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
+        # )
 
-    # stim_name = "checkerboard"
-    # subset = merged.query(f"stim == '{stim_name}'")
-    # print(subset)
-    # reindexed = reindex_results(subset)
-    # print(reindexed)
-    # reindexed.to_csv(
-    #     resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
-    # )
+        reindexed = per_stim.apply(reindex_results)
 
-    reindexed = per_stim.apply(reindex_results)
-
-    for stim_name, df in reindexed.groupby("stim"):
-        stim_name = stim_name.replace("_", "-")
-        df.to_csv(
-            resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
-        )
+        for stim_name, df in reindexed.groupby("stim"):
+            stim_name = stim_name.replace("_", "-")
+            df.to_csv(
+                resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
+            )
