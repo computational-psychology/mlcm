@@ -2,20 +2,21 @@ from pathlib import Path
 
 import pandas as pd
 
-# Experiment path:
+# Project directory
 project_path = Path(__file__).parents[1].absolute()
 
-# Overall datapath
+# Overall data directory
 datapath = project_path / "data"
 if not datapath.exists():
     raise SystemExit("No datadir -- exiting.")
 
-# Results-path
+# Results directories
 resultspath = datapath / "results"
 dirs = resultspath.walk()
 (rootpath, participants, root_files) = next(dirs)
 assert Path(rootpath) == resultspath
 
+# Tree results per participant
 participant_results = {}
 for path, subdirs, files in dirs:
     participant = path.stem
@@ -23,7 +24,9 @@ for path, subdirs, files in dirs:
 
 
 def merge_results(files):
-    """_summary_
+    """Merge several (results-)CSV-files into single dataframe
+
+    All specified `files` must  have the same columns.
 
     Parameters
     ----------
@@ -43,7 +46,7 @@ def merge_results(files):
 
 
 def reindex_results(df):
-    """_summary_
+    """Transform results dataframe to format required by {MLCM}
 
     The `{MLCM}` package requires the data CSV in a very specific format:
     - every row is a trial
@@ -95,23 +98,33 @@ def reindex_results(df):
 
 if __name__ == "__main__":
     for participant in participants:
+        # Merge all results (sessions, blocks, stimuli) per participant
+        # This will work as long as the results CSV have the same columns,
+        # i.e., if we use the same variables for all blocks/stimuli.
+        # In the current experimental setup, that should be the case.
         merged = merge_results(participant_results[participant])
         merged.to_csv(resultspath / participant / f"{participant}.csv", sep=",", index=False)
         # print(merged)
-        per_stim = merged.groupby("stim")
-        # print(per_stim)
 
+        # This merged dataframe can be queried (subset) for specific stimulus,
+        # or specific date, block, etc.
         # stim_name = "checkerboard"
         # subset = merged.query(f"stim == '{stim_name}'")
         # print(subset)
+
+        # Group the merged dataframe by stimulus
+        per_stim = merged.groupby("stim")
+        # print(per_stim)
+
+        # Then, reformat the dataframe to the format required by `{MLCM}` R-package
         # reindexed = reindex_results(subset)
         # print(reindexed)
+        reindexed = per_stim.apply(reindex_results)
+
+        # Save reindexed stimulus-specific results to file
         # reindexed.to_csv(
         #     resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
         # )
-
-        reindexed = per_stim.apply(reindex_results)
-
         for stim_name, df in reindexed.groupby("stim"):
             stim_name = stim_name.replace("_", "-")
             df.to_csv(
