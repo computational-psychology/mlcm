@@ -204,7 +204,7 @@ remove_outliers <- function(
   # we get the outliers from the residuals of the full model.
   # Thus we need to quicky fit the full model first....
   model <- mlcm(observed_data,
-    model = "full",
+    model = modeltype,
     method = "glm.fit",
     lnk = "probit",
     control = glm.control(epsilon = epsilon)
@@ -271,7 +271,7 @@ remove_outliers <- function(
 
 bootstrap_CIs <- function( # nolint: object_name_linter.
     model,
-    modeltype,
+    modeltype = "full",
     normalized = FALSE,
     save_samples = "",
     nsim = 1000,
