@@ -171,9 +171,8 @@ estimate_scales(filename,
   remove_outliers = TRUE,
   savecsv = TRUE
 )
-trimmed_data <- here("surround_brightness", "data", "results", "example-data-trimmed.csv")
+trimmed_data <- here("surround_brightness", "data", "results", "example-data_full_trimmed.csv")
 ```
-
 
 If some trials needed to be removed,
 the filename will also contain the word '`trimmed`', which means the outliers  were "trimmed" out.

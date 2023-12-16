@@ -408,11 +408,12 @@ estimate_scales <- function(filepath,
   if (plotflag) {
     plot(model, type = "b")
   }
+  rootname <- paste(rootname, modeltype, sep = "_")
 
   # Remove trials with high residuals (full model) and refit model
   if (remove_outliers) {
     if (savecsv) {
-      outliers_file <- file.path(directory, paste(rootname, ".outliers.csv", sep = ""))
+      outliers_file <- file.path(directory, paste(rootname, "outliers", "csv", sep = "."))
     }
     removal <- remove_outliers(observed_data,
       modeltype = modeltype,
@@ -424,15 +425,13 @@ estimate_scales <- function(filepath,
     model <- removal$model
     trimmed_data <- removal$trimmed_data
     gof <- removal$gof
+    rootname <- paste(rootname, "trimmed", sep = "_")
     if (savecsv) {
-      trimfix <- "-trimmed"
       write.csv(trimmed_data,
-        file.path(directory, paste(rootname, trimfix, ".csv", sep = "")),
+        file.path(directory, paste(rootname, "csv", sep = ".")),
         quote = FALSE, row.names = FALSE
       )
     }
-  } else {
-    trimfix <- ""
   }
 
   # Extract scale values, reformatting names of rows and columns
@@ -450,9 +449,7 @@ estimate_scales <- function(filepath,
   # Normalize the scale values
   if (normalized) {
     scalevalues <- scalevalues / scalevalues[nrow(scalevalues), 2]
-    normsuffix <- "-norm"
-  } else {
-    normsuffix <- ""
+    rootname <- paste(rootname, "norm", sep = "_")
   }
 
   # Reformat to long-format
@@ -465,10 +462,7 @@ estimate_scales <- function(filepath,
 
     filepath_bootsamples <- file.path(
       directory,
-      paste(rootname, trimfix, "-", modeltype, normsuffix,
-        ".bootsamples.csv",
-        sep = ""
-      )
+      paste(rootname, "bootsamples", "csv", sep = ".")
     )
     bootstrap <- bootstrap_CIs(model,
       modeltype,
@@ -499,12 +493,9 @@ estimate_scales <- function(filepath,
   if (saverds) {
     filepath_rda <- file.path(
       directory,
-      paste(rootname, trimfix, "-", modeltype,
-        ".Rda",
-        sep = ""
-      )
+      paste(rootname, "Rda", sep = ".")
     )
-    print(paste("saving in..", filepath_rda, sep = ""))
+    print(paste0("saving in: ", filepath_rda))
     if (do_bootstrap && remove_outliers) {
       save(model, bootstrap, gof, file = filepath_rda)
     } else if (do_bootstrap) {
@@ -520,10 +511,7 @@ estimate_scales <- function(filepath,
   if (savecsv) {
     filepath_scales <- file.path(
       directory,
-      paste(rootname, trimfix, "-", modeltype, normsuffix,
-        ".scales.csv",
-        sep = ""
-      )
+      paste(rootname, "scales", "csv", sep = ".")
     )
     write.csv(scalevalues, file = filepath_scales, row.names = FALSE, quote = FALSE)
   }
