@@ -172,7 +172,17 @@ perc_resid_in_envl <- function(x) {
   return(percentage)
 }
 
-
+#' Iteratively remove trials with highest residuals (putative outliers) until a "good" GoF.
+#'
+#' @param model {mlcm} model-object
+#' @param observed_data dataframe with all trials
+#' @param modeltype 'add' or 'full', for the type of model to be tested
+#' @param save_outliers path (str) to file where to save the bootstrap samples.
+#'                      If empty (`""`; Default), don't save bootstrap samples.
+#' @param ncores number of cores. Default 1.
+#' @param epsilon Resolution of bootstrap routine.
+#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
+#' @param plots TRUE or FALSE, whether to do GoF plots or not.
 goodness_of_fit <- function(model, epsilon = 1e-4, ncores = 1, plots = FALSE) {
   model_diags <- pbinom.diagnostics(model,
     nsim = 1000, ncores = ncores,
@@ -192,7 +202,16 @@ goodness_of_fit <- function(model, epsilon = 1e-4, ncores = 1, plots = FALSE) {
 }
 
 
-
+#' Iteratively remove trials with highest residuals (putative outliers) until a "good" GoF.
+#'
+#' @param observed_data dataframe with all trials
+#' @param modeltype 'add' or 'full', for the type of model to be tested
+#' @param save_outliers path (str) to file where to save the bootstrap samples.
+#'                      If empty (`""`; Default), don't save bootstrap samples.
+#' @param ncores number of cores. Default 1.
+#' @param epsilon Resolution of bootstrap routine.
+#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
+#' @param plots TRUE or FALSE, whether to do GoF plots or not.
 remove_outliers <- function(
     observed_data,
     modeltype = "full",
@@ -268,7 +287,31 @@ remove_outliers <- function(
   ))
 }
 
-
+#' Confidence Intervals (95%) for scale values, from bootstrapping & percentile method
+#'
+#' @param model {mlcm} model-object
+#' @param modeltype 'add' or 'full', for the type of model to be tested
+#' @param nsim number of bootstrap samples. Default=1000
+#' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized
+#'                    to its maximum. Default: FALSE
+#' @param save_samples path (str) to file where to save the bootstrap samples.
+#'                    If empty (`""`; Default), don't save bootstrap samples.
+#' @param ncores number of cores. Default 1.
+#' @param epsilon Resolution of bootstrap routine.
+#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
+#'
+#' @returns [list()] with:
+#'          * `bootstrap` object,
+#'          * `CI_low` (number),
+#'          * `CI_high` (number)
+#'
+#' We have issues with {mlcm}'s default epsilon for the full model (1e-8).
+#' It tends to be stuck at local minima and overestimates the scale values.
+#' This happens particularly bad for the bootstrap samples.
+#' I (GA) manually and by hand decreased the epsilon value
+#' to a value that does not give those results.
+#' It's a hack but it seems to work.
+#' Alternatively one would have to try another optimization algorithm more robust to local minima.
 bootstrap_CIs <- function( # nolint: object_name_linter.
     model,
     modeltype = "full",
@@ -365,18 +408,18 @@ pivot_scales <- function(scalevalues) {
 #' @param saverds TRUE or FALSE, whether to save raw R objects in a Rds file.
 #'                Default: FALSE. It is good practice to switch to TRUE
 #'                for the final analysis, for archiving purposes.
+#' @param epsilon Resolution given to the bootstrap & GoF optimization routines.
+#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #'
-#' @return None. Output scales are saved as CSV files.
+#' @returns {mlcm}-model object.
 #'
-#' epsilon is the resolution given to the optimization routine. At a difference
-#' of epsilon is where the algorithm stops. We have issues with {mlcm}'s default
-#' epsilon for the full model (1e-4). It tends to be stuck at local minima
-#' and overestimates the scale values. This happens particularly bad for the
-#' bootstrap samples. I (GA) manually and by hand decreased the epsilon value
-#' to a value that does not give those results. It's a hack but it seems
-#' to work. Alternatively one would have to try another optimization algorithm
-#' more robust to local minima.
-#'
+#' We have issues with {mlcm}'s default epsilon for the full model (1e-8).
+#' It tends to be stuck at local minima and overestimates the scale values.
+#' This happens particularly bad for the bootstrap samples.
+#' I (GA) manually and by hand decreased the epsilon value
+#' to a value that does not give those results.
+#' It's a hack but it seems to work.
+#' Alternatively one would have to try another optimization algorithm more robust to local minima.
 estimate_scales <- function(filepath,
                             modeltype = "full",
                             do_bootstrap = FALSE,
