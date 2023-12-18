@@ -84,7 +84,7 @@ if __name__ == "__main__":
         # In the current experimental setup, that should be the case.
         merged = merge_results(data_management.participant_results[participant])
         merged.to_csv(
-            data_management.results_dir / participant / f"{participant}.csv",
+            data_management.results_dir / participant / "analyzed" / f"{participant}.csv",
             sep=",",
             index=False,
         )
@@ -114,6 +114,7 @@ if __name__ == "__main__":
             df.to_csv(
                 data_management.results_dir
                 / participant
+                / "analyzed"
                 / f"{participant}_{stim_name}.csv",
                 sep=",",
                 index=False,

@@ -31,7 +31,7 @@ source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
 We need the path to the CSV file to be analysed.
 
 ```{r dataset}
-filename <- here("surround_brightness", "data", "results", "example-data.csv")
+filename <- here("surround_brightness", "data", "results", "DEMO", "analyzed", "DEMO_whites.csv")
 ```
 
 The CSV file should be already in the format 'understood' by MLCM:
@@ -171,7 +171,7 @@ estimate_scales(filename,
   remove_outliers = TRUE,
   savecsv = TRUE
 )
-trimmed_data <- here("surround_brightness", "data", "results", "example-data_full_trimmed.csv")
+trimmed_data <- here("surround_brightness", "data", "results", "DEMO", "analyzed", "DEMO_whites_full_trimmed.csv")
 ```
 
 If some trials needed to be removed,
