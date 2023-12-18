@@ -83,8 +83,11 @@ if __name__ == "__main__":
         # i.e., if we use the same variables for all blocks/stimuli.
         # In the current experimental setup, that should be the case.
         merged = merge_results(data_management.participant_results[participant])
+        filepath = data_management.results_dir / participant / "analyzed" / f"{participant}.csv"
+        if not filepath.parent.exists():
+            filepath.parent.mkdir(parents=True)
         merged.to_csv(
-            data_management.results_dir / participant / "analyzed" / f"{participant}.csv",
+            filepath,
             sep=",",
             index=False,
         )
