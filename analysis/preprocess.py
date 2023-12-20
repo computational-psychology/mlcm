@@ -18,6 +18,10 @@ def merge_results(files):
     -------
     pandas.DataFrame
         all data from specified CSV files concatenated into single dataframe
+
+    See also
+    --------
+    plotting.heatmap
     """
     merged = []
     for file in files:
