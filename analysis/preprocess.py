@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from surround_brightness import data_management
@@ -23,6 +24,52 @@ def merge_results(files):
         merged.append(pd.read_csv(file, sep=","))
 
     return pd.concat(merged)  # .reset_index(drop=True, inplace=True)
+
+
+def choice_frequencies(results):
+    """Summarise results in choice frequencies,
+
+    For each unique stimulus pair, how often is one chosen over the other.
+
+    Parameters
+    ----------
+    results : pandas.DataFrame
+        raw data from experiment code, concatenated
+
+    Returns
+    -------
+    pandas.DataFrame
+        choice frequency for each stimulus pair, ignoring stimulus ordering (i.e., mirroring),
+        thus only upper triangle
+    """
+    freqs_left = (
+        results.replace({"response": {"Left": 1, "Right": 0}})
+        .groupby(
+            ["context_left", "intensity_target_left", "context_right", "intensity_target_right"]
+        )
+        .aggregate({"response": "sum"})
+        .unstack(level=["context_right", "intensity_target_right"], sort=True, fill_value=0.0)
+        .droplevel(axis="columns", level=0)  # remove "response" index
+        .sort_index(axis="columns", level=[-2, -1])
+    )
+    freqs_right = (
+        results.replace({"response": {"Left": 0, "Right": 1}})
+        .groupby(
+            ["context_left", "intensity_target_left", "context_right", "intensity_target_right"]
+        )
+        .aggregate({"response": "sum"})
+        .unstack(level=["context_right", "intensity_target_right"], sort=True, fill_value=0.0)
+        .droplevel(axis="columns", level=0)  # remove "response" index
+        .sort_index(axis="columns", level=[-2, -1])
+    )
+
+    # Don't care about ordering of stimuli (i.e., mirroring)
+    # so sum upper and lower triangles
+    x = np.triu(freqs_left) + np.tril(freqs_right).T
+    x[np.tril_indices(x.shape[0], -1)] = np.nan
+    freqs_upper = pd.DataFrame(x, columns=freqs_left.columns, index=freqs_left.index)
+
+    return freqs_upper
 
 
 def reindex_results(df):
