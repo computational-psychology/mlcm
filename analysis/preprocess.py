@@ -151,7 +151,9 @@ if __name__ == "__main__":
         # print(subset)
 
         # Group the merged dataframe by stimulus
-        per_stim = merged.groupby("stim")
+        stim_keys = ["stim", "target_size", "n_surrounds"]
+        group_keys = [k for k in stim_keys if k in merged.columns]
+        per_stim = merged.groupby(group_keys, dropna=False)
         # print(per_stim)
 
         # Then, reformat the dataframe to the format required by `{MLCM}` R-package
@@ -163,13 +165,20 @@ if __name__ == "__main__":
         # reindexed.to_csv(
         #     resultspath / participant / f"{participant}_{stim_name}.csv", sep=",", index=False
         # )
-        for stim_name, df in reindexed.groupby("stim"):
-            stim_name = stim_name.replace("_", "-")
+        for group_id, df in reindexed.groupby(group_keys, dropna=False):
+            parts = {k: group_id[i] for i, k in enumerate(group_keys)}
+            parts["stim"] = parts["stim"].replace("_", "-")
+            if "target_size" in parts and not pd.isna(parts["target_size"]):
+                parts["target_size"] = f"{parts["target_size"]:.2f}"
+            if "n_surrounds" in parts and not pd.isna(parts["n_surrounds"]):
+                parts["n_surrounds"] = f"{int(parts["n_surrounds"])}"
+
+            stim_id = "-".join([f"{parts[k]}" for k in group_keys if not pd.isna(parts[k])])
             df.to_csv(
                 data_management.results_dir
                 / participant
                 / "analyzed"
-                / f"{participant}_{stim_name}.csv",
+                / f"{participant}_{stim_id}.csv",
                 sep=",",
                 index=False,
             )
