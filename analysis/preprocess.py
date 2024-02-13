@@ -3,10 +3,11 @@ import pandas as pd
 
 from surround_brightness import data_management
 
-# The target will look lighter in the white context than in the black context,
-# so code the 1st index as the one in white.
-# This sets the MLCM anchor at `0.0` for the lowest intensity in the white carrier
-CONTEXTS_TO_IDC = {"black": 2, "white": 1}
+# The target is hypothesized to look
+# lighter in the white context than in the black context.
+# We tell MLCM to anchor at `0.0` for the lowest intensity in the black carrier,
+# by setting black to be the first context
+CONTEXTS_TO_IDC = {"black": 1, "white": 2}
 
 
 def merge_results(files):
