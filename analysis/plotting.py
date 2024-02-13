@@ -58,6 +58,49 @@ def heatmap(freqs, N=15):
     return ax
 
 
+def scales_participant(scales, palette=palette, CI=None):
+    """Plot percpetual scales (for single participant)
+
+    Parameters
+    ----------
+    scales : pandas.DataFrame
+        estimated scales, with columns "intensity", "context", "scale",
+        and optionally "scale_CI_low"/"_high".
+    palette : dict, optional
+        color palette to use, mapping "context" to colors, by default plotting.palette
+    CI : bool, optional
+        whether to plot CIs.
+        If None (default), will plot CIs _if_ columns are present in dataframe,
+        but won't throw an exception if they aren't.
+
+    Returns
+    -------
+    matplotlib.Axes
+        Axes-object containing scales plot
+    """
+    if CI is None and ("scale_CI_low" in scales and "scale_CI_high" in scales):
+        CI = True
+
+    ax = sns.scatterplot(data=scales, x="intensity", y="scale", hue="context", palette=palette)
+    if CI:
+        for context in scales["context"].unique():
+            curr = scales[scales["context"] == context]
+            yerr = (curr["scale"] - curr["scale_CI_low"], curr["scale_CI_high"] - curr["scale"])
+            ax.errorbar(
+                curr["intensity"],
+                curr["scale"],
+                yerr=yerr,
+                fmt="none",
+                ecolor=palette[context],
+                capsize=0,
+            )
+
+    ax.set_ylabel("Perceptual scale")
+    ax.set_xlabel("Luminance [$cdm^{-2}$]")
+
+    return ax
+
+
 if __name__ == "__main__":
     for participant in data_management.participants:
         results = pd.read_csv(
