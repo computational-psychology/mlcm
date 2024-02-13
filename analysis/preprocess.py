@@ -3,6 +3,11 @@ import pandas as pd
 
 from surround_brightness import data_management
 
+# The target will look lighter in the white context than in the black context,
+# so code the 1st index as the one in white.
+# This sets the MLCM anchor at `0.0` for the lowest intensity in the white carrier
+CONTEXTS_TO_IDC = {"black": 2, "white": 1}
+
 
 def merge_results(files):
     """Merge several (results-)CSV-files into single dataframe
@@ -113,12 +118,8 @@ def reindex_results(df):
     L2 = df["intensity_target_right"].replace(intensities_to_idc).astype(int).rename("I2")
 
     # Contexts
-    # The target will look lighter in the white context than in the black context,
-    # so code the 1st index as the one in white.
-    # This sets the MLCM anchor at `0.0` for the lowest intensity in the white carrier
-    contexts_to_idc = {"black": 2, "white": 1}
-    C1 = df["context_left"].replace(contexts_to_idc).astype(int).rename("C1")
-    C2 = df["context_right"].replace(contexts_to_idc).astype(int).rename("C2")
+    C1 = df["context_left"].replace(CONTEXTS_TO_IDC).astype(int).rename("C1")
+    C2 = df["context_right"].replace(CONTEXTS_TO_IDC).astype(int).rename("C2")
 
     # Results
     responses_to_idc = {"Left": 1, "Right": 0}
