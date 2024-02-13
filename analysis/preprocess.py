@@ -108,7 +108,7 @@ def reindex_results(df):
     intensities = pd.concat([df["intensity_target_left"], df["intensity_target_right"]]).unique()
     intensities.sort()
     # print(f"Intensity values: {intensities}")
-    intensities_to_idc = {intensity: idx for idx, intensity in enumerate(intensities)}
+    intensities_to_idc = {intensity: idx + 1 for idx, intensity in enumerate(intensities)}
     L1 = df["intensity_target_left"].replace(intensities_to_idc).astype(int).rename("I1")
     L2 = df["intensity_target_right"].replace(intensities_to_idc).astype(int).rename("I2")
 
