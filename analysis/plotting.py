@@ -17,7 +17,7 @@ sns.set_style(
 )
 sns.set_context("talk")
 
-palette = {"in black": "#252525", "in white": "#969696"}
+palette = {"black": "#252525", "white": "#969696"}
 
 
 def heatmap(freqs, N=15):
