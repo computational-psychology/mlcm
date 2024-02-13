@@ -1,6 +1,7 @@
 import pandas as pd
 
 from surround_brightness import data_management
+from surround_brightness.analysis.plotting import scales_participant
 from surround_brightness.analysis.preprocess import CONTEXTS_TO_IDC
 from surround_brightness.experiment.design import intensities as exp_intensities
 
@@ -31,3 +32,7 @@ if __name__ == "__main__":
 
     s = reindex_scales(pd.read_csv(filepath, sep=","))
     s.to_csv(filepath, sep=",", index=False)
+
+    plt.figure(figsize=(6, 6))
+    scales_participant(s)
+    plt.show()
