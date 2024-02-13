@@ -221,7 +221,7 @@ remove_outliers <- function(
     plots = FALSE) {
   # if we're calculating the additive model,
   # we get the outliers from the residuals of the full model.
-  # Thus we need to quicky fit the full model first....
+  # Thus we need to quickly fit the full model first....
   model <- mlcm(observed_data,
     model = modeltype,
     method = "glm.fit",
@@ -356,7 +356,7 @@ bootstrap_CIs <- function( # nolint: object_name_linter.
     write.csv(t(samples), file = save_samples)
   }
 
-  # samples a matrix of size n params x n boostrap samples
+  # samples a matrix of size n params x n bootstrap samples
   # we then calculate for each row (each parameter) the percentiles
   bootsample_low <- c(0, apply(samples, 1, quantile, probs = 0.025))
   bootsample_high <- c(0, apply(samples, 1, quantile, probs = 0.975))

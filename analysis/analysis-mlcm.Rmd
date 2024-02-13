@@ -1,6 +1,6 @@
 ---
 title: "Pipeline for estimating perceptual scales with MLCM"
-author: "Guillermo Aguilar"
+author: "Guillermo Aguilar, Joris Vincent"
 date: "`r Sys.Date()`"
 output: pdf_document
 params:
@@ -69,7 +69,7 @@ that means that the scale for context `2`
 is just a shifted version of the scale for context `1`.
 
 The full model relaxes that assumption
-and allows the possiblity of more complex interactions beyond only a constant shift,
+and allows the possibility of more complex interactions beyond only a constant shift,
 at the expense of having more parameters to be fit.
 
 We fit both models to the same data,
@@ -131,7 +131,7 @@ print(ratio_test)
 ```
 
 The test considers the reduction of the residual deviance with the full model,
-and evaluates if that reduction is signifficant.
+and evaluates if that reduction is statistically significant.
 The column `Pr(>Chi)` shows the p-value.
 
 If the test _is not_ significant (p-value >= 0.05),
@@ -164,7 +164,8 @@ Over many simulations we obtain the distribution of the model residuals,
 and the range obtained over simulations is compared with the observed residuals.
 If the model assumptions hold,
 then the observed residuals should be in the range from the simulated residuals.
-If that is the case, then a p-value calculated over the range will *not* be signifficant.
+If that is the case, then a p-value calculated over the range
+will *not* be statistically significant.
 In other words,
 the GoF evaluation 'passes' when the $p >= 0.05$.
 
