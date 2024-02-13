@@ -3,6 +3,9 @@ title: "Pipeline for estimating perceptual scales with MLCM"
 author: "Guillermo Aguilar"
 date: "`r Sys.Date()`"
 output: pdf_document
+params:
+  participant: DEMO
+  stimulus: whites
 ---
 
 ```{r setup, include=FALSE}
@@ -29,9 +32,13 @@ source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
 ## Step 0: Dataset
 
 We need the path to the CSV file to be analysed.
+This gets constructed from participant initials, and stimulus name.
 
 ```{r dataset}
-filename <- here("surround_brightness", "data", "results", "DEMO", "analyzed", "DEMO_whites.csv")
+filename <- here(
+  "surround_brightness", "data", "results", params$participant, "analyzed",
+  paste(paste(params$participant, params$stimulus, sep = "_"), "csv", sep = ".")
+)
 ```
 
 The CSV file should be already in the format 'understood' by MLCM:
@@ -119,7 +126,8 @@ Note: the command for the test is called `anova`,
 but what we are doing here is *not* an analysis of variance (ANOVA).
 
 ```{r likelihood ratio test}
-print(anova(model_additive, model_full, test = "Chisq"))
+ratio_test <- anova(model_additive, model_full, test = "Chisq")
+print(ratio_test)
 ```
 
 The test considers the reduction of the residual deviance with the full model,
@@ -133,6 +141,12 @@ Then, on the next step you should choose the additive model (`modeltype="add"`).
 If it _is_ significant,
 then the `full` model explains the data better than the additive,
 and in the next step you should use the full model (`modeltype='full'`).
+
+```{r select model}
+alpha <- 0.05
+modeltype <- ifelse(ratio_test$Pr[2] < alpha, "full", "add")
+print(modeltype)
+```
 
 
 ## Step 2: goodness of fit, outlier removal
@@ -167,11 +181,14 @@ and what we now do.
 
 ```{r goodness of fit evaluation and outlier removal}
 estimate_scales(filename,
-  modeltype = "full",
+  modeltype = modeltype,
   remove_outliers = TRUE,
   savecsv = TRUE
 )
-trimmed_data <- here("surround_brightness", "data", "results", "DEMO", "analyzed", "DEMO_whites_full_trimmed.csv")
+trimmed_data <- here(
+  "surround_brightness", "data", "results", params$participant, "analyzed",
+  paste(params$participant, params$stimulus, modeltype, "trimmed.csv", sep = "_")
+)
 ```
 
 If some trials needed to be removed,
@@ -189,7 +206,7 @@ such that the highest scale value is to 1.
 
 ```{r bootstrap}
 estimate_scales(trimmed_data,
-  modeltype = "full",
+  modeltype = modeltype,
   remove_outliers = FALSE,
   do_bootstrap = TRUE,
   normalized = TRUE,
