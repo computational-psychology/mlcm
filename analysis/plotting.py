@@ -157,9 +157,21 @@ if __name__ == "__main__":
                 data_management.fig_path
                 / f"{participant}_{stim.replace('_', '-')}.choice_freqs.pdf"
             )
+            plt.close()
 
     # All scales
     scales = pd.read_csv(data_management.results_dir / "ALL_FULL.scales.csv", sep=",")
     plt.figure()
     G = scales_all(scales)
     plt.savefig(data_management.fig_path / "ALL.scales.pdf")
+    plt.close()
+
+    # Scales per participant x stimulus
+    for (participant, stim), df in scales.groupby(["participant", "stim"]):
+        # Plot scales
+        plt.figure(figsize=(8, 8))
+        scales_participant(scales)
+        plt.savefig(
+            data_management.fig_path / f"{participant}_{stim.replace('_', '-')}.scales.pdf"
+        )
+        plt.close()

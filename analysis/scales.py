@@ -5,7 +5,6 @@ import pandas as pd
 
 from surround_brightness import data_management
 from surround_brightness.analysis import preprocess
-from surround_brightness.analysis.plotting import scales_participant
 from surround_brightness.experiment.design import intensities as exp_intensities
 
 ANALYSIS_FILE = Path(__file__).parent / "analysis-mlcm.Rmd"
@@ -106,8 +105,6 @@ def estimate_scales(participant, stimulus):
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     scales_filepaths = []
 
     for participant in data_management.participants:
@@ -168,14 +165,6 @@ if __name__ == "__main__":
 
             # Save reindexed scales, overwriting
             scales.to_csv(scales_filepath, sep=",", index=False)
-
-            # Plot scales
-            plt.figure(figsize=(6, 6))
-            scales_participant(scales)
-            plt.savefig(
-                data_management.fig_path
-                / f"{participant}_{stim_name.replace('_', '-')}.scales.pdf"
-            )
 
             # Aggregate filepaths to scales
             scales_filepaths.append(scales_filepath)
