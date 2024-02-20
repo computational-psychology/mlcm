@@ -101,7 +101,48 @@ def scales_participant(scales, palette=palette, CI=None):
     return ax
 
 
+def scales_all(scales, palette=palette, CI=None):
+    """Plot all given percpetual scales, facetted by stimulus (row), participant (col))
+
+    Parameters
+    ----------
+    scales : pandas.DataFrame
+        estimated scales, with columns "intensity", "context", "scale", "participant", "stim",
+        and optionally "scale_CI_low"/"_high".
+    palette : dict, optional
+        color palette to use, mapping "context" to colors, by default plotting.palette
+    CI : bool, optional
+        whether to plot CIs.
+        If None (default), will plot CIs _if_ columns are present in dataframe,
+        but won't throw an exception if they aren't.
+
+    Returns
+    -------
+    matplotlib.Axes
+        Axes-object containing scales plot
+    """
+    if CI is None and ("scale_CI_low" in scales and "scale_CI_high" in scales):
+        CI = True
+
+    G = sns.relplot(
+        scales,
+        kind="scatter",
+        x="intensity",
+        y="scale",
+        hue="context",
+        palette=palette,
+        col="participant",
+        row="stim",
+    )
+
+    # TODO: labeling
+    # TODO: add CIs
+
+    return G
+
+
 if __name__ == "__main__":
+    # All conjoint proportion plots (choice-frequency heatmaps)
     for participant in data_management.participants:
         results = pd.read_csv(
             data_management.results_dir / participant / "analyzed" / f"{participant}.csv"
@@ -116,3 +157,9 @@ if __name__ == "__main__":
                 data_management.fig_path
                 / f"{participant}_{stim.replace('_', '-')}.choice_freqs.pdf"
             )
+
+    # All scales
+    scales = pd.read_csv(data_management.results_dir / "ALL_FULL.scales.csv", sep=",")
+    plt.figure()
+    G = scales_all(scales)
+    plt.savefig(data_management.fig_path / "ALL.scales.pdf")
