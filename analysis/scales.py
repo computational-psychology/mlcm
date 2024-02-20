@@ -9,6 +9,8 @@ from surround_brightness.experiment.design import intensities as exp_intensities
 
 ANALYSIS_FILE = Path(__file__).parent / "analysis-mlcm.Rmd"
 
+SKIP_PARTICIPANTS = ["-PILOT", "-OLD"]
+
 # The target is hypothesized to look
 # lighter in the white context than in the black context.
 # We tell MLCM to anchor at `0.0` for the lowest intensity in the black carrier,
@@ -111,7 +113,8 @@ if __name__ == "__main__":
     scales_filepaths = []
 
     for participant in data_management.participants:
-        # participant = "NJ-PILOT"
+        if any([substring in participant.upper() for substring in SKIP_PARTICIPANTS]):
+            continue
 
         # Get the total results-file for this participant
         results_filepath = (
