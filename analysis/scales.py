@@ -13,7 +13,7 @@ ANALYSIS_FILE = Path(__file__).parent / "analysis-mlcm.Rmd"
 # lighter in the white context than in the black context.
 # We tell MLCM to anchor at `0.0` for the lowest intensity in the black carrier,
 # by setting black to be the first context
-CONTEXTS_TO_IDC = {"black": 1, "white": 2}
+CONTEXTS_TO_IDC = {"black": "1", "white": "2"}
 IDC_TO_CONTEXTS = {val: key for key, val in CONTEXTS_TO_IDC.items()}
 
 
@@ -45,28 +45,31 @@ def reindex_results(df):
         reindexed data in the format that MLCM requires
     """
 
-    # Intensities
     intensities = pd.concat([df["intensity_target_left"], df["intensity_target_right"]]).unique()
     intensities.sort()
     # print(f"Intensity values: {intensities}")
     intensities_to_idc = {intensity: idx + 1 for idx, intensity in enumerate(intensities)}
-    L1 = df["intensity_target_left"].replace(intensities_to_idc).astype(int).rename("I1")
-    L2 = df["intensity_target_right"].replace(intensities_to_idc).astype(int).rename("I2")
+    response_to_idc = {"Left": "1", "Right": "0"}
+    idc_to_sides = {"1": "left", "2": "right"}
 
-    # Contexts
-    C1 = df["context_left"].replace(CONTEXTS_TO_IDC).astype(int).rename("C1")
-    C2 = df["context_right"].replace(CONTEXTS_TO_IDC).astype(int).rename("C2")
+    columns = {"response": "Resp"}
+    columns.update({f"intensity_target_{idc_to_sides[key]}": f"I{key}" for key in idc_to_sides})
+    columns.update({f"context_{idc_to_sides[key]}": f"C{key}" for key in idc_to_sides})
 
-    # Results
-    responses_to_idc = {"Left": 1, "Right": 0}
-    Resp = df["response"].replace(responses_to_idc).astype(float).rename("Resp")
+    out = (
+        df.rename(columns=columns)[[*columns.values()]]
+        .replace({"I1": intensities_to_idc, "I2": intensities_to_idc})
+        .replace({"C1": CONTEXTS_TO_IDC, "C2": CONTEXTS_TO_IDC})
+        .replace({"Resp": response_to_idc})
+        .astype("int")
+    )
 
-    return pd.concat([Resp, L1, L2, C1, C2], axis=1)
+    return out
 
 
 def reindex_scales(scales, intensities=exp_intensities):
     # Index contexts
-    scales["context"] = scales["context"].replace(IDC_TO_CONTEXTS)
+    scales["context"] = scales["context"].astype(str).replace(IDC_TO_CONTEXTS)
 
     # Index intensities
     ints = {idx + 1: intensity for idx, intensity in enumerate(intensities)}
@@ -126,7 +129,7 @@ if __name__ == "__main__":
 
         # Then, reformat the dataframe to the format required by `{MLCM}` R-package
         # reindexed = reindex_results(subset)
-        reindexed = per_stim.apply(reindex_results)
+        reindexed = per_stim.apply(reindex_results, include_groups=False)
 
         # Estimate scales for each stimululs
         for stim_name, df in reindexed.groupby("stim"):
@@ -160,8 +163,10 @@ if __name__ == "__main__":
             scales = reindex_scales(scales)
 
             # Add participant, stimulus, info
-            scales.insert(loc=0, column="stim", value=stim_name)
-            scales.insert(loc=0, column="participant", value=participant)
+            if not "stim" in scales:
+                scales.insert(loc=0, column="stim", value=stim_name)
+            if not "participant" in scales:
+                scales.insert(loc=0, column="participant", value=participant)
 
             # Save reindexed scales, overwriting
             scales.to_csv(scales_filepath, sep=",", index=False)

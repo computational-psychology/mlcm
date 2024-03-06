@@ -47,7 +47,8 @@ def choice_frequencies(results):
         thus only upper triangle
     """
     freqs_left = (
-        results.replace({"response": {"Left": 1, "Right": 0}})
+        results.replace({"response": {"Left": "1", "Right": "0"}})
+        .astype({"response": "int"})
         .groupby(
             ["context_left", "intensity_target_left", "context_right", "intensity_target_right"]
         )
@@ -57,7 +58,8 @@ def choice_frequencies(results):
         .sort_index(axis="columns", level=[-2, -1])
     )
     freqs_right = (
-        results.replace({"response": {"Left": 0, "Right": 1}})
+        results.replace({"response": {"Left": "0", "Right": "1"}})
+        .astype({"response": "int"})
         .groupby(
             ["context_left", "intensity_target_left", "context_right", "intensity_target_right"]
         )
