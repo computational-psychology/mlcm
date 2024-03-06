@@ -160,7 +160,15 @@ if __name__ == "__main__":
                 scales_filepath = data_management.results_dir / participant / "analyzed" / filename
                 scales = pd.read_csv(scales_filepath, sep=",")
             except FileNotFoundError:
-                continue
+                try:
+                    modeltype = "add"
+                    filename = (
+                        f"{participant}_{stim_name}_{modeltype}_norm.scales.csv"
+                    )
+                    scales_filepath = data_management.results_dir / participant / "analyzed" / filename
+                    scales = pd.read_csv(scales_filepath, sep=",")
+                except FileNotFoundError:
+                    continue
 
             # Reindex back
             scales = reindex_scales(scales)
@@ -180,5 +188,5 @@ if __name__ == "__main__":
     # Merge all scales into single CSV
     scales_merged = preprocess.merge_results(scales_filepaths)
     scales_merged.to_csv(
-        data_management.results_dir / f"ALL_{modeltype.upper()}.scales.csv", sep=",", index=False
+        data_management.results_dir / "ALL.scales.csv", sep=",", index=False
     )
