@@ -124,19 +124,36 @@ def scales_all(scales, palette=palette, CI=None):
     if CI is None and ("scale_CI_low" in scales and "scale_CI_high" in scales):
         CI = True
 
-    G = sns.relplot(
+    G = sns.FacetGrid(
         scales,
-        kind="scatter",
-        x="intensity",
-        y="scale",
-        hue="context",
-        palette=palette,
         col="participant",
         row="stim",
+        hue="context",
+        xlim=(-.1, 1.2),
+        ylim=(-.1, 1.2),
+        palette=palette,
+        margin_titles=True,
+        subplot_kws={'aspect': 'equal'}
     )
+    G.set_titles(col_template='{col_name}', row_template='{row_name}')
+    G.map(sns.scatterplot, "intensity", "scale")
+    G.add_legend()
 
-    # TODO: labeling
-    # TODO: add CIs
+    if CI:
+        for (stim, participant), axes in G.axes_dict.items():
+            subset = scales.query(f'participant == "{participant}" & stim == "{stim}"')
+
+            for context in subset["context"].unique():
+                curr = subset[subset["context"] == context]
+                yerr = (curr["scale"] - curr["scale_CI_low"], curr["scale_CI_high"] - curr["scale"])
+                axes.errorbar(
+                    curr["intensity"],
+                    curr["scale"],
+                    yerr=yerr,
+                    fmt="none",
+                    ecolor=palette[context],
+                    capsize=0,
+                )
 
     return G
 
@@ -160,7 +177,7 @@ if __name__ == "__main__":
             plt.close()
 
     # All scales
-    scales = pd.read_csv(data_management.results_dir / "ALL_FULL.scales.csv", sep=",")
+    scales = pd.read_csv(data_management.results_dir / "ALL.scales.csv", sep=",")
     plt.figure()
     G = scales_all(scales)
     plt.savefig(data_management.fig_path / "ALL.scales.pdf")
