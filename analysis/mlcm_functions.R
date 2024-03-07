@@ -373,19 +373,64 @@ bootstrap_CIs <- function( # nolint: object_name_linter.
 }
 
 
-#' Pivot dataframe of scale-values to long-format
+#' Extract and format scale values (and optionally combine with CIs)
 #'
-#' @param scalevalues dataframe of scalevalues in wide format
-#'
-#' @return long-fromat of scale values (1 column per context)
-pivot_scales <- function(scalevalues) {
-  scalevalues_long <- reshape(scalevalues,
-    varying = c("Context.1", "Context.2"),
-    timevar = "context", v.names = "scale", direction = "long"
-  )
-  scalevalues_long <- subset(scalevalues_long, select = -id) # removing id column
+#' @param model {MLCM} model object to extract estimated scale values from
+#' @param bootstrap bootstrap output, optional
+#' @param normalized whether to normalize scale values, default FALSE
+extract_scales <- function(model, filepath, bootstrap, normalized = FALSE) {
+  # Extract scale values
+  scale_values <- model$pscale |>
+    as.data.frame(row.names = seq_along(model$pscale[, 1])) |>
+    setNames(c("context.1", "context.2"))
 
-  return(scalevalues_long)
+  # If additive model, shift
+  if (model$model == "add") {
+    scale_values[, 2] <- scale_values[, 1] + scale_values[2, 2]
+  }
+
+  # Normalize scale values
+  if (normalized) {
+    scale_values <- scale_values / scale_values[nrow(scale_values), 2]
+  }
+
+  # Reformat
+  scale_values$intensity <- seq_along(scale_values[, 1])
+  scale_values <- scale_values |>
+    reshape(
+      direction = "long",
+      varying = c("context.1", "context.2"), timevar = "context",
+      v.names = "scale",
+    ) |>
+    subset(select = c("intensity", "context", "scale")) # removing id column, reordering
+
+  # Include bootstrapped CI bounds
+  if (!missing(bootstrap)) {
+    # Format CI bounds same as scale values
+    ci_low <-
+      data.frame(intensity = seq_along(bootstrap$CI_low[, 1]), bootstrap$CI_low) |>
+      setNames(c("intensity", "context.1", "context.2")) |>
+      reshape(
+        direction = "long",
+        varying = c("context.1", "context.2"), timevar = "context",
+        v.names = "scale_CI_low",
+      )
+
+    ci_high <-
+      data.frame(intensity = seq_along(bootstrap$CI_high[, 1]), bootstrap$CI_high) |>
+      setNames(c("intensity", "context.1", "context.2")) |>
+      reshape(
+        direction = "long",
+        varying = c("context.1", "context.2"), timevar = "context",
+        v.names = "scale_CI_high",
+      )
+
+    # Merge CI bounds with scale values
+    ci_bounds <- merge(ci_low, ci_high, by = c("intensity", "context"), sort = FALSE)
+    scale_values <- merge(scale_values, ci_bounds, by = c("intensity", "context"), sort = FALSE)
+  }
+
+  return(scale_values)
 }
 
 
@@ -477,27 +522,8 @@ estimate_scales <- function(filepath,
     }
   }
 
-  # Extract scale values, reformatting names of rows and columns
-  scalevalues <- model$pscale
-  colnames(scalevalues) <- c("Context.1", "Context.2")
-  for (i in 1:nrow(scalevalues)) {
-    rownames(scalevalues)[i] <- i
-  }
-  if (modeltype == "add") {
-    additiveshift <- model$obj$coefficients[length(model$obj$coefficients)]
-    scalevalues[, 2] <- scalevalues[, 1] + additiveshift
-  }
-
-
-  # Normalize the scale values
-  if (normalized) {
-    scalevalues <- scalevalues / scalevalues[nrow(scalevalues), 2]
-    rootname <- paste(rootname, "norm", sep = "_")
-  }
-
-  # Reformat to long-format
-  scalevalues <- data.frame(intensity = row.names(scalevalues), scalevalues)
-  scalevalues <- pivot_scales(scalevalues)
+  # Extract scale values
+  scalevalues <- extract_scales(model, normalized = normalized)
 
   # Bootstrap CIs
   if (do_bootstrap) {
@@ -516,20 +542,8 @@ estimate_scales <- function(filepath,
       epsilon = epsilon
     )
 
-    # Format CI bounds same as scale values
-    ci_low <- data.frame(intensity = 1:nrow(bootstrap$CI_low), bootstrap$CI_low)
-    colnames(ci_low) <- c("intensity", "Context.1", "Context.2")
-    ci_low <- pivot_scales(ci_low)
-
-    ci_high <- data.frame(intensity = 1:nrow(bootstrap$CI_high), bootstrap$CI_high)
-    colnames(ci_high) <- c("intensity", "Context.1", "Context.2")
-    ci_high <- pivot_scales(ci_high)
-
-    # Merge scale values, CI bounds
-    tmp <- merge(scalevalues, ci_low, by = c("intensity", "context"), sort = FALSE)
-    scalevalues <- merge(tmp, ci_high, by = c("intensity", "context"), sort = FALSE)
-
-    colnames(scalevalues) <- c("intensity", "context", "scale", "scale_CI_low", "scale_CI_high")
+    # Merge CI bounds with scale values
+    scalevalues <- extract_scales(model, bootstrap, normalized = normalized)
   }
 
   # Save to Rda
