@@ -10,23 +10,48 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE)
-here::i_am("surround_brightness/analysis/analysis-mlcm.Rmd")
 ```
 
-## Setup
+## Overview
 
-The MLCM scale estimation is performed primarily by the `{mlcm}` package.
-Here we have encapsulated the estimation in a higher level function `estimate_scales()`,
-which also adds additional functionality.
-This can be found in `mlcm_functions.R` here, which needs to be `source`d.
+We estimate perceptual scales using Maximum-Likelihood Conjoint Measurement
+(MLCM).
+The `{mlcm}` package implements this estimation,
+and some additional functions for diagnostics, etc.
+
+For convenience, we have encapsulated this estimation in various functions
+in `mlcm_functions.R` here, which needs to be `source`d.
+These functions encapsulate the scale estimation,
+but also parallelize the diagnostics and bootstrapping,
+and provide some convenience functions for wrangling the in- and output.
+
 These functions depends on the packages `{mclm}` and `{snow}`.
+In the current notebook,
+we also use the package `{here}` for more flexible and portable paths.
 
-(Here we also use the package `{here}` for more flexible and portable paths)
-
-```{r sourcing function definitions}
+```{r source function definitions}
+# Set project root directory
+here::i_am("surround_brightness/analysis/analysis-mlcm.Rmd")
 library(here)
 source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
 ```
+
+The complete process of perceptual scale estimation that we use here
+follows several steps:
+0. Load the data
+1. Select which MLCM model to fit
+  1a. Fit the `full` or _saturated_ model,
+      where all scale values are estimated
+  1b. Fit the `add`itive model,
+      where values of the two scales differ only by a single additive shift
+  1c. Choose model by comparing the fitting quality of the two models
+2. Evaluate Goodness-of-Fit of model
+  2b. Remove putative outliers
+3. Estimate 95% confidence of scale values,
+   by bootstrapping confidence intervals
+   
+Lastly, we export and save final scale estimates and CI bounds
+so that they can be used later.
 
 
 ## Step 0: Dataset
