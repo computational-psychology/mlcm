@@ -56,21 +56,21 @@ so that they can be used later.
 
 ## Step 0: Dataset
 
-We need the path to the CSV file to be analysed.
-This gets constructed from participant initials, and stimulus name.
+First, we load the data from which perceptual scales should be estimated.
+We have this saved in a CSV file,
+the name of which is constructed from participant initials, and stimulus name.
 
-```{r dataset}
-filename <- here(
-  "surround_brightness", "data", "results", params$participant, "analyzed",
-  paste(paste(params$participant, params$stimulus, sep = "_"), "csv", sep = ".")
-)
+```{r path to data}
+filename_data <- paste(paste(params$participant, params$stimulus, sep = "_"), "csv", sep = ".")
+filepath_data <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_data)
 ```
+The original data will be loaded from `r toString(filepath_data)`
 
-The CSV file should be already in the format 'understood' by MLCM:
+The CSV file should be already in the format 'understood' by {MLCM}:
 
-- every row is a trial
-- the first column is called 'Resp', which contains the binary response to the trial.
-- the four columns containing the stimuli indices presented in that trial.
+- each row is a single trial
+- first column, called `Resp`, contains the (binary) response to the trial
+- next (four) columns contain the stimuli indices presented in that trial
 
 In this case we use `I1` and `C1`
 to code the intensity and context of the first stimulus, respectively.
@@ -78,10 +78,14 @@ Similarly `I2` and `C2` code the intensity and context of the second stimulus.
 The entries are integers starting from `1`.
 
 For the intensity dimension there is no limit or restriction on the amount of values.
-However, the current implementation allows only 2 contexts,
+However, our current implementation allows only 2 contexts,
 i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 
-
+```{r load data}
+trial_data <- read.csv(filepath_data, sep = ",")[c("Resp", "I1", "I2", "C1", "C2")]
+print(paste("number of trials:", nrow(trial_data)))
+print(head(trial_data))
+```
 
 ## Step 1: Model selection
 
@@ -105,7 +109,7 @@ First, we fit the `full` model.
 We call the main function `estimate_scales` to do the fit.
 The parameter `modeltype` controls which model we want to fit (`add` or `full`).
 ```{r fit full model}
-model_full <- estimate_scales(filename, modeltype = "full")
+model_full <- estimate_scales(filepath_data, modeltype = "full")
 ```
 
 > Note: It is normal that we obtain a warning
@@ -120,7 +124,7 @@ Here we see that for each combination of `I` and `C` we obtain a scale value.
 
 Now, we fit the `add`itive model.
 ```{r fit additive model}
-model_additive <- estimate_scales(filename, modeltype = "add")
+model_additive <- estimate_scales(filepath_data, modeltype = "add")
 ```
 We see the resulting scales values for the first context (column `I`),
 and the single additive shift factor for the second context (column `C`).
@@ -203,7 +207,7 @@ This is what is implemented when the flag `remove_outliers` is set to `TRUE`,
 and what we now do.
 
 ```{r goodness of fit evaluation and outlier removal}
-estimate_scales(filename,
+estimate_scales(filepath_data,
   modeltype = modeltype,
   remove_outliers = TRUE,
   savecsv = TRUE
