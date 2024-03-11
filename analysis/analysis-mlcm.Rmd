@@ -234,34 +234,81 @@ _`r ifelse(gof$p < alpha, "more", "less")`_ extreme than the simulated residuals
 and the fit is considered _`r ifelse(gof$p < alpha, "not", "")` good_.
 
 
+### Removing outliers, to improve the fit
 Over the years we have observed that
-the GoF evaluation is very sensitive to outliers, for example lapses.
-We have thus developed a procedure in which we remove trials with high residuals
-(one by one, starting from the highest) and re-evaluate GoF.
-We repeat this procedure iteratively until the GoF test passes.
+the GoF evaluation is very sensitive to _outliers_:
+idiosyncratic trials where the observed response is very different
+from what the model would predict.
+Such outliers have a high residual after fitting,
+which strongly influences the GoF.
+These outlying trials do happen,
+for example lapses where the participant wanted to indicate stimulus 1,
+but misclicked and indicated stimulus 2.
+
+We have thus developed a procedure in which we `remove_outliers()`.
+Trials with high residuals are removed one by one, starting from the highest,
+and GoF is re-evaluated after each removal.
+We repeat this procedure iteratively, until the GoF test passes.
 Usually less than 20 trials (from a dataset of thousands)
-is needed to be removed in order for the GoF test to pass.
+need to be removed in order for the GoF test to pass.
 
-This is what is implemented when the flag `remove_outliers` is set to `TRUE`,
-and what we now do.
+The function for this outlier-removal
+takes in the observed data, and the initial model.
+Again, this function can parallelize the evaluations
+by specifying `ncores` to use.
 
-```{r goodness of fit evaluation and outlier removal}
-estimate_scales(filepath_data,
-  modeltype = modeltype,
-  remove_outliers = TRUE,
-  savecsv = TRUE
-)
-trimmed_data <- here(
-  "surround_brightness", "data", "results", params$participant, "analyzed",
-  paste(params$participant, params$stimulus, modeltype, "trimmed.csv", sep = "_")
+```{r remove outliers}
+removal <- remove_outliers(
+  observed_data = trial_data,
+  model = model,
+  ncores = 4,
 )
 ```
 
-If some trials needed to be removed,
-the filename will also contain the word '`trimmed`', which means the outliers  were "trimmed" out.
-In that case you will also find a CSV file with the filename ennding in `.outliers`.
-This file contains the trials that needed to be removed for the  GoF test to pass.
-The first column in this file is the row number of that trial on the original dataset file.
+Here we see that in order to "pass" the Goodness-of-Fit test
+(p = `r paste(removal$gof$p, ">=", alpha)`),
+`r paste(nrow(removal$outliers))` had to be removed,
+leaving a "trimmed" dataset of `r paste(nrow(removal$trimmed))` trials.
+
+This outlier-removal is timeconsuming,
+so we save the trimmed data to be used in the rest of the analysis
+We save both the removed outliers (for archival purposes),
+and the trimmed data to be used in the rest of the analysis,
+with the filename containing the word `<...>.trimmed.csv`,
+
+```{r save trimmed data}
+filepath_trimmed <- here(
+  "surround_brightness", "data", "results", params$participant, "analyzed",
+  paste(paste(params$participant, params$stimulus, modeltype, sep = "_"), "trimmed", "csv", sep = ".")
+)
+write.csv(removal$trimmed_data, filepath_trimmed, quote = FALSE, row.names = FALSE)
+```
+
+For archival purposes, we also save the removed trials, i.e., the outliers,
+to a CSV file with the filename ending in `<...>.outliers.csv`.
+The first column in this file is
+the row number of that trial on the original dataset file.
+
+```{r save outliers}
+filepath_outliers <- here(
+  "surround_brightness", "data", "results", params$participant, "analyzed",
+  paste(paste(params$participant, params$stimulus, modeltype, sep = "_"), "outliers", "csv", sep = ".")
+)
+write.csv(removal$outliers, filepath_outliers, quote = FALSE, row.names = FALSE)
+```
+
+Now, we re-estimate the final scale values on just the trimmed data,
+and evaluate the GoF of that model.
+
+```{r estimate trimmed scales}
+model <- estimate_scales(removal$trimmed_data,
+  modeltype = modeltype,
+)
+print(model)
+gof <- goodness_of_fit(model, ncores = 4)
+print(gof$p)
+```
+
 
 ## Step 3: final scale estimates, with bootstrapped confidence intervals
 

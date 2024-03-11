@@ -194,84 +194,62 @@ goodness_of_fit <- function(model, ncores = 1, plots = FALSE) {
 #' Iteratively remove trials with highest residuals (putative outliers) until a "good" GoF.
 #'
 #' @param observed_data dataframe with all trials
-#' @param modeltype 'add' or 'full', for the type of model to be tested
-#' @param save_outliers path (str) to file where to save the bootstrap samples.
-#'                      If empty (`""`; Default), don't save bootstrap samples.
+#' @param model estimated model to improve GoF for
 #' @param ncores number of cores. Default 1.
-#' @param epsilon Resolution of bootstrap routine.
-#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #' @param plots TRUE or FALSE, whether to do GoF plots or not.
 remove_outliers <- function(
     observed_data,
-    modeltype = "full",
-    save_outliers = "",
+    model,
     ncores = 1,
-    epsilon = 1e-4,
     plots = FALSE) {
-  # if we're calculating the additive model,
-  # we get the outliers from the residuals of the full model.
-  # Thus we need to quickly fit the full model first....
-  model <- mlcm(observed_data,
-    model = modeltype,
-    method = "glm.fit",
-    lnk = "probit",
-    control = glm.control(epsilon = epsilon)
-  )
 
-  # we get the vector of residuals (deviance residual)
+  # Extract vector of residuals (deviance residual)
   deviance_residuals <- residuals(model$obj)
-  s <- sort(abs(deviance_residuals),
-    decreasing = TRUE,
-    index.return = TRUE
-  ) # return sorted value AND index
+  deviance_residuals <- sort(abs(deviance_residuals), decreasing = TRUE, index.return = TRUE) # return sorted value AND index
 
-  finished <- FALSE
-  start <- 1
-  while (!finished) {
+  # Evaluate GoF
+  gof <- goodness_of_fit(model, ncores = ncores, plots = plots)
+  cat("\nGoodness-of-Fit measures:\n")
+  cat(paste("- percentage inside envelope CDF deviance residuals:", gof$percentage, "\n"))
+  cat(paste("- p-value of number of runs histogram:", gof$p, "\n"))
+
+  if (gof$p < 0.05) {
+    cat("\n***********************************************************************\n")
+    cat("*** Iteratively removing trials with high residuals to improve GoF ****\n")
     cat("***********************************************************************\n")
-    cat("*** iteratively removing putative outliers (trials with high residuals)\n")
-    cat("     to improve goodnesss of fit **************************************\n")
+  }
+  start <- 1
+  while (gof$p < 0.05) {
+    start <- start + 1
+    cat("\n...trimming one more trial...\n")
 
-    # select first trials
-    trimmed_data <- observed_data[sort(s$ix[start:nrow(observed_data)]), ]
+    # Remove outlier
+    trimmed_data <- observed_data[sort(deviance_residuals$ix[start:nrow(observed_data)]), ]
+    outliers <- observed_data[deviance_residuals$ix[1:start - 1], ]
+    cat(paste("dataset trimmed to ->", nrow(trimmed_data), "trials\n"))
+    cat(paste("removed ->", nrow(outliers), "trials\n"))
 
-    removed <- observed_data[s$ix[1:start - 1], ]
-    if (!save_outliers == "") {
-      write.csv(removed, save_outliers, quote = FALSE, row.names = TRUE)
-    }
-    cat(paste("dataset reduced to -> ", nrow(trimmed_data), " trials \n", sep = ""))
-    cat(paste("removed -> ", nrow(removed), " trials \n", sep = ""))
-
+    # Fit model on trimmed data
     model <- mlcm(trimmed_data,
-      model = modeltype,
-      method = "glm.fit",
-      lnk = "probit",
-      control = glm.control(epsilon = epsilon)
+      model = model$model,
+      method = model$obj$method,
+      lnk = model$link,
+      control = model$obj$control
     )
 
-    # evaluate GoF
-    gof <- goodness_of_fit(model, epsilon = epsilon, ncores = ncores, plots = plots)
-    cat("goodness of fit measures:\n")
-    cat(paste("- percentage inside envelope CDF deviance residuals: ",
-      gof$percentage,
-      "\n",
-      sep = ""
-    ))
-    cat(paste("- p-value of number of runs histogram: ", gof$p_value, "\n", sep = ""))
-
-    # if p-val <0.05 then take one trial less (start +=1)
-    if (gof$p_value < 0.05) {
-      cat("...eliminating one more trial... \n\n")
-      start <- start + 1
-    } else { # if p-val >=0.05, break out of loop
-      cat("...p-value >= 0.05, iteration finished.\n\n")
-      finished <- TRUE
-    }
-  } # end while
+    # Evaluate Goodness-of-Fit
+    gof <- goodness_of_fit(model, ncores = ncores, plots = plots)
+    cat("\nGoodness-of-Fit measures:\n")
+    cat(paste("- percentage inside envelope CDF deviance residuals:", gof$percentage, "\n"))
+    cat(paste("- p-value of number of runs histogram:", gof$p, "\n"))
+  }
+  cat("\n***********************************************************************\n")
+  cat(paste("p =", gof$p, ">= 0.05, iteration finished.\n\n"))
 
   return(list(
     model = model,
     trimmed_data = trimmed_data,
+    outliers = outliers,
     gof = gof
   ))
 }
