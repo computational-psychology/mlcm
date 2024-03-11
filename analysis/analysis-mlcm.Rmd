@@ -81,74 +81,68 @@ For the intensity dimension there is no limit or restriction on the amount of va
 However, the current implementation allows only 2 contexts,
 i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 
-## Step 1: model selection
 
-### Logic
-The first step in the analysis is to fit the two possible models that MLCM provides:
-additive conjoint measurement (`add`)
-or the full, saturated model (`full`).
 
-The additive model assumes that the difference between contexts is additive.
-In our case,
-that means that the scale for context `2`
-is just a shifted version of the scale for context `1`.
+## Step 1: Model selection
 
-The full model relaxes that assumption
-and allows the possibility of more complex interactions beyond only a constant shift,
-at the expense of having more parameters to be fit.
+`{MLCM}` can fit two possible models:
 
+- `add`itive conjoint measurement, 
+  which assumes that the difference between contexts is additive.
+  In our case,that means that the scale for context `2`
+  is just a shifted version of the scale for context `1`.
+- `full`, saturated model
+  which relaxes that assumption
+  and allows the possibility of more complex interactions
+  beyond only a constant shift.
+
+We want to fit the model that best captures our data.
 We fit both models to the same data,
-and check whether the full model is indeed
-significantly better at explaining the data as the additive one,
-given that it has more free parameters and is thus expected to always fit better.
+and check which model is better at explaining the data.
 
 
-### Estimates scales with additive model
-
-We call the function `estimate_scales` to do the fit.
+First, we fit the `full` model.
+We call the main function `estimate_scales` to do the fit.
 The parameter `modeltype` controls which model we want to fit (`add` or `full`).
-We set the flag `do_bootstrap` to `FALSE`
-because for the moment we are only interested in the model fit and point estimate
-and we do not want to calculate bootstrap confidence intervals yet.
-
-```{r}
-model_additive <- estimate_scales(filename,
-  modeltype = "add"
-)
+```{r fit full model}
+model_full <- estimate_scales(filename, modeltype = "full")
 ```
 
+> Note: It is normal that we obtain a warning
+> ('fitted probabilities numerically 0 or 1 occurred').
+> This just means that for some comparisons (trials)
+> the response is perfectly consistent,
+> i.e., the participant always chose the same answer.
+> This is expected for easy trials.
+
+Here we see that for each combination of `I` and `C` we obtain a scale value.
+
+
+Now, we fit the `add`itive model.
+```{r fit additive model}
+model_additive <- estimate_scales(filename, modeltype = "add")
+```
 We see the resulting scales values for the first context (column `I`),
 and the single additive shift factor for the second context (column `C`).
-
-### Estimate scales with `full` ('saturated') model
-
-```{r estimate full model}
-model_full <- estimate_scales(filename,
-  modeltype = "full",
-  savecsv = TRUE
-)
-```
-Here we see that for each combination of `L` and `C` we obtain a scale value.
-
-Note: It is normal that we obtain a warning
-('fitted probabilities numerically 0 or 1 occurred').
-This only means that for some comparisons
-the observer was perfectly consistent (always chose the same answer).
-This is expected for easy trials.
-
-By passing `savecsv = TRUE`, we are also asking for
-the resulting scales to be saved to`'<...>.scales.csv'`.
-The filename will contain the word '`add`' or '`full`', depending on the model.
 
 
 ### Model comparison
 
 We now compare the two models with each other.
+However, the `full` model has more parameters to be fit,
+which means it gets more degrees of freedom to improve the fit.
+Thus, we want to compare the two fits,
+while penalizing the `full` model for its extra degrees of freedom.
+In other words, is the `full` model
+_statistically significantly_ better at explaining the data
+than the `add`itive one, given that it has more free parameters
+(and is thus expected to always fit better).
+
 This is done using the likelihood ratio test
 (for which the statistic follows the $\chi^2$ distribution, Knoblauch & Maloney, 2012).
 
-Note: the command for the test is called `anova`,
-but what we are doing here is *not* an analysis of variance (ANOVA).
+> Note: that we use the `anova` function for this test,
+> but what we are doing here is *not* an analysis of variance (ANOVA).
 
 ```{r likelihood ratio test}
 ratio_test <- anova(model_additive, model_full, test = "Chisq")
@@ -159,18 +153,21 @@ The test considers the reduction of the residual deviance with the full model,
 and evaluates if that reduction is statistically significant.
 The column `Pr(>Chi)` shows the p-value.
 
-If the test _is not_ significant (p-value >= 0.05),
-that means the additive model is enough to explain the data.
-Then, on the next step you should choose the additive model (`modeltype="add"`).
-
-If it _is_ significant,
-then the `full` model explains the data better than the additive,
-and in the next step you should use the full model (`modeltype='full'`).
+We compare this p-value to an alpha level,
+to binarize to statistical significance and thus select which model to use
 
 ```{r select model}
 alpha <- 0.05
-modeltype <- ifelse(ratio_test$Pr[2] < alpha, "full", "add")
-print(modeltype)
+significance <- ratio_test$Pr[2] < alpha
+modeltype <- ifelse(significance, "full", "add")
+```
+
+Here, the test `r paste0("_is", ifelse(significance, "", "not"), "_")` significant
+(p = `r paste(ratio_test$Pr[2], ifelse(significance,"<",">="), alpha)`).
+Thus, here we use the `r paste0("_", modeltype, "_")` model going forward.
+
+```{r fit model}
+model <- estimate_scales(trial_data, modeltype=modeltype)
 ```
 
 
