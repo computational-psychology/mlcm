@@ -426,7 +426,7 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 
 #' Estimate perceptual scales from data using MLCM
 #'
-#' @param filename path to CSV file in the expected format (see example-data.csv)
+#' @param observed_data dataframe of trials to estimate perceptual scales for
 #' @param modeltype 'add' or 'full', for the type of model to be tested
 #' @param do_bootstrap TRUE or FALSE, whether to calculate bootstrap confidence
 #'                    intervals or not. Default: FALSE
@@ -449,7 +449,7 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 #' to a value that does not give those results.
 #' It's a hack but it seems to work.
 #' Alternatively one would have to try another optimization algorithm more robust to local minima.
-estimate_scales <- function(filepath,
+estimate_scales <- function(observed_data,
                             modeltype = "full",
                             do_bootstrap = FALSE,
                             nsim = 1000,
@@ -459,15 +459,7 @@ estimate_scales <- function(filepath,
                             epsilon = 1e-4,
                             ncores = 4) {
   cat("********** Estimating scales - START **********\n")
-  filename <- basename(filepath)
-  rootname <- strsplit(filename, ".csv")[[1]]
-  directory <- dirname(filepath)
-
-  # Load data
-  observed_data <- read.csv(filepath, sep = ",")[c("Resp", "I1", "I2", "C1", "C2")]
-  cat(paste("number of trials:", nrow(observed_data), sep = " "))
-
-  # Estimating perceptaul scales
+  # Fit perceptual scales
   model <- mlcm(observed_data,
     model = modeltype,
     method = "glm.fit",

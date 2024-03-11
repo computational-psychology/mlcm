@@ -109,7 +109,7 @@ First, we fit the `full` model.
 We call the main function `estimate_scales` to do the fit.
 The parameter `modeltype` controls which model we want to fit (`add` or `full`).
 ```{r fit full model}
-model_full <- estimate_scales(filepath_data, modeltype = "full")
+model_full <- estimate_scales(trial_data, modeltype = "full")
 print(model_full)
 ```
 
@@ -125,7 +125,7 @@ Here we see that for each combination of `I` and `C` we obtain a scale value.
 
 Now, we fit the `add`itive model.
 ```{r fit additive model}
-model_additive <- estimate_scales(filepath_data, modeltype = "add")
+model_additive <- estimate_scales(trial_data, modeltype = "add")
 print(model_additive)
 ```
 We see the resulting scales values for the first context (column `I`),
@@ -173,7 +173,7 @@ Here, the test `r paste0("_is", ifelse(significance, "", "not"), "_")` significa
 Thus, here we use the `r paste0("_", modeltype, "_")` model going forward.
 
 ```{r fit model}
-model <- estimate_scales(trial_data, modeltype=modeltype)
+model <- estimate_scales(trial_data, modeltype = modeltype)
 print(model)
 ```
 
