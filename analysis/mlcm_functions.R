@@ -172,33 +172,22 @@ perc_resid_in_envl <- function(x) {
   return(percentage)
 }
 
-#' Iteratively remove trials with highest residuals (putative outliers) until a "good" GoF.
+#' Evaluate Goodness-of-Fit.
 #'
 #' @param model {mlcm} model-object
-#' @param observed_data dataframe with all trials
-#' @param modeltype 'add' or 'full', for the type of model to be tested
-#' @param save_outliers path (str) to file where to save the bootstrap samples.
-#'                      If empty (`""`; Default), don't save bootstrap samples.
 #' @param ncores number of cores. Default 1.
-#' @param epsilon Resolution of bootstrap routine.
-#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #' @param plots TRUE or FALSE, whether to do GoF plots or not.
-goodness_of_fit <- function(model, epsilon = 1e-4, ncores = 1, plots = FALSE) {
+goodness_of_fit <- function(model, ncores = 1, plots = FALSE) {
   model_diags <- pbinom.diagnostics(model,
     nsim = 1000, ncores = ncores,
-    control = glm.control(epsilon = epsilon)
+    control = model$obj$control
   )
   if (plots) {
     plot(model_diags)
   }
-  percentage <- perc_resid_in_envl(model_diags)
-  p_value <- model_diags$p
+  model_diags$percentage <- perc_resid_in_envl(model_diags)
 
-  return(list(
-    model_diags = model_diags,
-    percentage = percentage,
-    p_value = p_value
-  ))
+  return(model_diags = model_diags)
 }
 
 

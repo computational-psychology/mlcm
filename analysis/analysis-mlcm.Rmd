@@ -178,25 +178,61 @@ print(model)
 ```
 
 
-## Step 2: goodness of fit, outlier removal
+## Step 2: Evaluate Goodness-of-Fit (GoF)
 
-After selection which model to use,
-we now are ready to estimate the final scales by evaluate the goodness of fit.
-The same function `estimate_scales` does this job when the flag `remove_outliers` is set to `TRUE`.
+Now that we know which of the model types (`full` or `add`) fits best,
+let's see how good that fit exactly is.
 
-The function will fit the model and run the goodness of fit evaluation (GoF).
+One way to evaluate the Goodness-of-Fit (GoF) of a GLM like this,
+is to look at the _residuals_:
+the distances between each of the observed values (trial outcomes),
+and what the fitted model would predicted for that trial.
+```{r residuals}
+residuals <- residuals(model$obj)
+```
+We could combine these residuals into a single value
+such as a Root Mean Squared Error (RMSE)
+```{r RMSE}
+RMSE <- sqrt(mean(residuals^2))
+print(RMSE)
+```
+But is this good, or bad?
+In order to evaluate the GoF, we need to compare the residuals to something.
+
+Instead of setting some criterion for the RMSE,
+in MLCM we evaluate the robustness of the estimated parameters (scale values).
 Roughly speaking,
-the fitted model is used to simulate data
-coming from the same underlying parameters (scales values)
+the fitted model is used to _simulate_ data
+using the same underlying parameters (scale values) 
 and the same amount of trials.
-Over many simulations we obtain the distribution of the model residuals,
-and the range obtained over simulations is compared with the observed residuals.
+Over many simulations we obtain a _distribution_ of model residuals
+-- the distances between predicted values and actual (simulated) values.
+
+We then compare the distribution obtained over simulations,
+with the residuals from the actual (observed) data.
 If the model assumptions hold,
-then the observed residuals should be in the range from the simulated residuals.
-If that is the case, then a p-value calculated over the range
-will *not* be statistically significant.
-In other words,
-the GoF evaluation 'passes' when the $p >= 0.05$.
+then the _observed_ residuals should be
+in the distribution from the _simulated_ residuals.
+Thus, we calculate the p-value that the distribution of simulated residuals
+is more extreme than the observed residuals.
+In other words the Goodness-of-Fit *"passes"*
+if this comparison is *not* statistically significant ($p >= 0.05$).
+
+We use the diagnostics from {mlcm} for the GoF evaluation,
+although our convenience wrapper can speed this up
+by parallelizing across CPU cores (`ncores`).
+
+```{r goodness-of-fit}
+gof <- goodness_of_fit(model, ncores = 4)
+print(gof$p)
+```
+Here, the GoF test is
+`r paste("_", ifelse(gof$p < alpha, "", "not"), "significant_")`
+(p = `r paste(gof$p, ifelse(gof$p < alpha, "<", ">="), alpha)`),
+meaning that the observed residuals are
+_`r ifelse(gof$p < alpha, "more", "less")`_ extreme than the simulated residuals,
+and the fit is considered _`r ifelse(gof$p < alpha, "not", "")` good_.
+
 
 Over the years we have observed that
 the GoF evaluation is very sensitive to outliers, for example lapses.
