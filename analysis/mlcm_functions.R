@@ -202,7 +202,6 @@ remove_outliers <- function(
     model,
     ncores = 1,
     plots = FALSE) {
-
   # Extract vector of residuals (deviance residual)
   deviance_residuals <- residuals(model$obj)
   deviance_residuals <- sort(abs(deviance_residuals), decreasing = TRUE, index.return = TRUE) # return sorted value AND index
@@ -257,18 +256,12 @@ remove_outliers <- function(
 #' Confidence Intervals (95%) for scale values, from bootstrapping & percentile method
 #'
 #' @param model {mlcm} model-object
-#' @param modeltype 'add' or 'full', for the type of model to be tested
 #' @param nsim number of bootstrap samples. Default=1000
 #' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized
-#'                    to its maximum. Default: FALSE
-#' @param save_samples path (str) to file where to save the bootstrap samples.
-#'                    If empty (`""`; Default), don't save bootstrap samples.
+#'                    to their maximum. Default: FALSE
 #' @param ncores number of cores. Default 1.
-#' @param epsilon Resolution of bootstrap routine.
-#'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #'
-#' @returns [list()] with:
-#'          * `bootstrap` object,
+#' @returns `bootstrap` object, with additional attributes:
 #'          * `CI_low` (number),
 #'          * `CI_high` (number)
 #'
@@ -281,28 +274,20 @@ remove_outliers <- function(
 #' Alternatively one would have to try another optimization algorithm more robust to local minima.
 bootstrap_CIs <- function( # nolint: object_name_linter.
     model,
-    modeltype = "full",
-    normalized = FALSE,
-    save_samples = "",
     nsim = 1000,
-    ncores = 1,
-    epsilon = 1e-4) {
+    normalized = FALSE,
+    ncores = 1) {
   # Bootstrap sample
   bootstrap <- pboot.mlcm(model,
     nsim = nsim,
     ncores = ncores,
-    control = glm.control(epsilon = epsilon)
+    control = model$obj$control
   )
 
-  # Calculate 95% percentile confidence intervals from the bootstrap samples
+  # Extract bootstrap samples: matrix of size n_params x n_bootstrap_samples
   samples <- bootstrap$boot.samp
-
-  # getting number of contexts
-  n_contexts <- as.integer(ncol(model$pscale))
-
-  ## if the model is additive, we need to rearrange the bootstrap samples a bit
-  ## to get the full matrix
-  if (modeltype == "add") {
+  if (model$model == "add") {
+    # For the additive model, need rearranging to get the full matrix
     additiveshift <- samples[nrow(samples), ]
 
     context1 <- samples[1:nrow(samples) - 1, ]
@@ -311,32 +296,21 @@ bootstrap_CIs <- function( # nolint: object_name_linter.
     samples <- rbind(context1, context2)
   }
 
-  # if we want normalized scales, we divide the samples matrix by the maximum
-  # in each sample.
+  # Normalize by maximum in each row
   if (normalized) {
-    maximum <- samples[nrow(samples), ]
-    samples <- t(t(samples) / maximum)
+    samples <- apply(samples, 2, function(smpl) smpl / max(smpl))
   }
 
-  # save bootstrap samples in CSV file as well
-  if (!save_samples == "") {
-    write.csv(t(samples), file = save_samples)
-  }
+  # Calculate for each row (each parameter) the percentiles
+  bootstrap$CI_low <- c(0, apply(samples, 1, quantile, probs = 0.025))
+  bootstrap$CI_high <- c(0, apply(samples, 1, quantile, probs = 0.975))
 
-  # samples a matrix of size n params x n bootstrap samples
-  # we then calculate for each row (each parameter) the percentiles
-  bootsample_low <- c(0, apply(samples, 1, quantile, probs = 0.025))
-  bootsample_high <- c(0, apply(samples, 1, quantile, probs = 0.975))
+  # Reformat to same shape as scale values
+  dim(bootstrap$CI_low) <- dim(model$pscale)
+  dim(bootstrap$CI_high) <- dim(model$pscale)
 
-  # reformat to a matrix
-  dim(bootsample_low) <- c(length(bootsample_low) / n_contexts, n_contexts)
-  dim(bootsample_high) <- c(length(bootsample_high) / n_contexts, n_contexts)
-
-  return(list(
-    bootstrap = bootstrap,
-    CI_low = bootsample_low,
-    CI_high = bootsample_high
-  ))
+  bootstrap$samples <- samples
+  return(bootstrap)
 }
 
 
@@ -406,12 +380,7 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 #'
 #' @param observed_data dataframe of trials to estimate perceptual scales for
 #' @param modeltype 'add' or 'full', for the type of model to be tested
-#' @param do_bootstrap TRUE or FALSE, whether to calculate bootstrap confidence
-#'                    intervals or not. Default: FALSE
-#' @param nsim number of bootstrap samples. Default=1000
 #' @param plotflag TRUE or FALSE, whether to do plots or not.
-#' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized
-#'                    to its maximum. Default: FALSE
 #' @param epsilon Resolution given to the bootstrap & GoF optimization routines.
 #'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #'
@@ -426,12 +395,8 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 #' Alternatively one would have to try another optimization algorithm more robust to local minima.
 estimate_scales <- function(observed_data,
                             modeltype = "full",
-                            do_bootstrap = FALSE,
-                            nsim = 1000,
                             plotflag = FALSE,
-                            normalized = FALSE,
-                            epsilon = 1e-4,
-                            ncores = 4) {
+                            epsilon = 1e-4) {
   cat("********** Estimating scales - START **********\n")
   # Fit perceptual scales
   model <- mlcm(observed_data,
@@ -444,27 +409,6 @@ estimate_scales <- function(observed_data,
     plot(model, type = "b")
   }
 
-
-  # Bootstrap CIs
-  if (do_bootstrap) {
-    cat("bootstrapping the model to calculate confidence intervals\n")
-
-    filepath_bootsamples <- file.path(
-      directory,
-      paste(rootname, "bootsamples", "csv", sep = ".")
-    )
-    bootstrap <- bootstrap_CIs(model,
-      modeltype,
-      normalized = normalized,
-      save_samples = filepath_bootsamples,
-      nsim = nsim,
-      ncores = ncores,
-      epsilon = epsilon
-    )
-
-    # Merge CI bounds with scale values
-    scalevalues <- extract_scales(model, bootstrap, normalized = normalized)
-  }
 
   cat("********** Estimating scales - END **********\n")
   cat("*********************************************\n")

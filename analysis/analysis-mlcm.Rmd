@@ -310,22 +310,50 @@ print(gof$p)
 ```
 
 
-## Step 3: final scale estimates, with bootstrapped confidence intervals
+## Step 3: Bootstrapped confidence intervals
 
-We also pass the flag `do_bootstrap` as `TRUE`
-so that the function calculates bootstrap confidence intervals.
-The flag `normalized` is `TRUE` so that the final scales are normalized
-such that the highest scale value is to 1.
+We also calculate bootstrapped confidence intervals.
+We run many (e.g., 1000) simulations,
+where on each simulation new trials are generated from the fitted model
+and a model is fit to those simulated trials.
+Then, from all the simulated model fits,
+we calculate the intervals for each scale value,
+that contains 95% of the simulations.
+This is the confidence interval:
+we are 95% confident that the True scale value falls within this interval.
+
+Here, we also _normalize_ our scale values.
+In the scale estimation, the absolute values for the scales
+are not (directly) interpretable, they have no (clear) units.
+Moreover, they can vary from simulation to simulation.
+So, we normalize our scale values, such that the maximum is set to `1`.
 
 ```{r bootstrap}
-estimate_scales(trimmed_data,
-  modeltype = modeltype,
-  remove_outliers = FALSE,
-  do_bootstrap = TRUE,
-  normalized = TRUE,
+bootstrap <- bootstrap_CIs(
+  model, 
+  normalized = TRUE, 
+  nsim = 1000, 
+  ncores = 4
 )
 ```
 
+This returns an object with the whole bootstrapping,
+and includes the `CI_low` and `CI_high` bounds for each scale value.
+```{r CI}
+print(bootstrap$CI_low)
+print(bootstrap$CI_high)
+```
+
+We also save all the bootstrap samples to a file `<...>.bootsamples.csv`
+-- this is used for archival purposes, but not in the rest of the analysis pipeline.
+
+```{r save bootstrap samples}
+filepath_bootsamples <- here(
+  "surround_brightness", "data", "results", params$participant, "analyzed",
+  paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "bootsamples", "csv", sep = ".")
+)
+write.csv(bootstrap$samples, filepath_bootsamples, quote = FALSE, row.names = FALSE)
+```
 
 ## Step 4: Export scales, CIs
 Now that we have our final, best fitting scale value estimates,
