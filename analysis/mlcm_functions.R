@@ -409,9 +409,6 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 #' @param do_bootstrap TRUE or FALSE, whether to calculate bootstrap confidence
 #'                    intervals or not. Default: FALSE
 #' @param nsim number of bootstrap samples. Default=1000
-#' @param remove_outliers TRUE or FALSE, whether or not to run goodness of fit
-#'                        analyses and sequentially remove the trials with highest
-#'                        residuals (putative outliers) until a "good" GoF. Default: FALSE
 #' @param plotflag TRUE or FALSE, whether to do plots or not.
 #' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized
 #'                    to its maximum. Default: FALSE
@@ -431,7 +428,6 @@ estimate_scales <- function(observed_data,
                             modeltype = "full",
                             do_bootstrap = FALSE,
                             nsim = 1000,
-                            remove_outliers = FALSE,
                             plotflag = FALSE,
                             normalized = FALSE,
                             epsilon = 1e-4,
@@ -448,30 +444,6 @@ estimate_scales <- function(observed_data,
     plot(model, type = "b")
   }
 
-
-  # Remove trials with high residuals (full model) and refit model
-  if (remove_outliers) {
-    if (savecsv) {
-      outliers_file <- file.path(directory, paste(rootname, "outliers", "csv", sep = "."))
-    }
-    removal <- remove_outliers(observed_data,
-      modeltype = modeltype,
-      save_outliers = outliers_file,
-      ncores = ncores,
-      epsilon = epsilon,
-      plots = plotflag
-    )
-    model <- removal$model
-    trimmed_data <- removal$trimmed_data
-    gof <- removal$gof
-    rootname <- paste(rootname, "trimmed", sep = "_")
-    if (savecsv) {
-      write.csv(trimmed_data,
-        file.path(directory, paste(rootname, "csv", sep = ".")),
-        quote = FALSE, row.names = FALSE
-      )
-    }
-  }
 
   # Bootstrap CIs
   if (do_bootstrap) {
