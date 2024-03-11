@@ -492,7 +492,6 @@ estimate_scales <- function(filepath,
     lnk = "probit",
     control = glm.control(epsilon = epsilon)
   )
-  print(model)
   if (plotflag) {
     plot(model, type = "b")
   }
