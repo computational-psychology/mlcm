@@ -379,9 +379,10 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 #' Estimate perceptual scales from data using MLCM
 #'
 #' @param observed_data dataframe of trials to estimate perceptual scales for
-#' @param modeltype 'add' or 'full', for the type of model to be tested
-#' @param plotflag TRUE or FALSE, whether to do plots or not.
-#' @param epsilon Resolution given to the bootstrap & GoF optimization routines.
+#' @param modeltype 'add' or 'full', for the type of model to be tested.
+#'                  Default: full.
+#' @param plotflag TRUE or FALSE, whether to do plots or not. Default: FALSE
+#' @param epsilon Resolution for the optimization routines.
 #'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #'
 #' @returns {mlcm}-model object.
@@ -397,7 +398,6 @@ estimate_scales <- function(observed_data,
                             modeltype = "full",
                             plotflag = FALSE,
                             epsilon = 1e-4) {
-  cat("********** Estimating scales - START **********\n")
   # Fit perceptual scales
   model <- mlcm(observed_data,
     model = modeltype,
@@ -409,8 +409,5 @@ estimate_scales <- function(observed_data,
     plot(model, type = "b")
   }
 
-
-  cat("********** Estimating scales - END **********\n")
-  cat("*********************************************\n")
   return(model)
 }
