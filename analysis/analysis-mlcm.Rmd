@@ -276,17 +276,39 @@ estimate_scales(trimmed_data,
   remove_outliers = FALSE,
   do_bootstrap = TRUE,
   normalized = TRUE,
-  savecsv = TRUE,
-  saverds = TRUE,
 )
 ```
 
 
-The final output file is a CSV file containing the final scale estimates.
-This file ends with `'<...>.scales.csv'`.
-and can contain '`norm`' when the scales are normalized to 1.
+## Step 4: Export scales, CIs
+Now that we have our final, best fitting scale value estimates,
+and the 95% confidence intervals for these,
+we extract all this into a single dataframe
+-- and export that as a `<...>.scales.csv` file.
+In the filename we also include the `modeltype`: `add` or `full`,
+and `_norm_` when the scales are normalized to 1.
 
-We also save two additional files
--- `<...>.bootsamples.csv` and an `<...>.Rda` file.
-These are used for achival purposes,
-but not in the rest of the analysis pipeline.
+```{r extract scales}
+# Extract scale values
+df_scales <- extract_scales(model, bootstrap, normalized = TRUE)
+print(df_scales)
+```
+```{r export scales to CSV}
+# Export to CSV
+filename_scales <- paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "scales", "csv", sep = ".")
+filepath_scales <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_scales)
+write.csv(df_scales, filepath_scales, quote = FALSE, row.names = FALSE)
+```
+
+
+
+### Archive
+
+We also save an additional `<...>.Rda` file.
+This is for archival purposes, but not used in the rest of the analysis pipeline.
+
+```{r save to Rda}
+filename_rda <- paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "Rda", sep = ".")
+filepath_rda <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_rda)
+save(params, model, bootstrap, gof, file = filepath_rda)
+```

@@ -367,7 +367,7 @@ bootstrap_CIs <- function( # nolint: object_name_linter.
 #' @param model {MLCM} model object to extract estimated scale values from
 #' @param bootstrap bootstrap output, optional
 #' @param normalized whether to normalize scale values, default FALSE
-extract_scales <- function(model, filepath, bootstrap, normalized = FALSE) {
+extract_scales <- function(model, bootstrap, normalized = FALSE) {
   # Extract scale values
   scale_values <- model$pscale |>
     as.data.frame(row.names = seq_along(model$pscale[, 1])) |>
@@ -417,6 +417,7 @@ extract_scales <- function(model, filepath, bootstrap, normalized = FALSE) {
     # Merge CI bounds with scale values
     ci_bounds <- merge(ci_low, ci_high, by = c("intensity", "context"), sort = FALSE)
     scale_values <- merge(scale_values, ci_bounds, by = c("intensity", "context"), sort = FALSE)
+    scale_values <- subset(scale_values, select = c("intensity", "context", "scale", "scale_CI_low", "scale_CI_high"))
   }
 
   return(scale_values)
@@ -436,12 +437,6 @@ extract_scales <- function(model, filepath, bootstrap, normalized = FALSE) {
 #' @param plotflag TRUE or FALSE, whether to do plots or not.
 #' @param normalized TRUE or FALSE. TRUE if resulting scales should be normalized
 #'                    to its maximum. Default: FALSE
-#' @param savecsv TRUE or FALSE, whether to save scales as CSV files.
-#'                Default: FALSE. If you want to save the scales for further analysis
-#'                then it needs to be set to TRUE.
-#' @param saverds TRUE or FALSE, whether to save raw R objects in a Rds file.
-#'                Default: FALSE. It is good practice to switch to TRUE
-#'                for the final analysis, for archiving purposes.
 #' @param epsilon Resolution given to the bootstrap & GoF optimization routines.
 #'                At a difference of epsilon is where the algorithm stops. Default: 1e-4
 #'
@@ -461,8 +456,6 @@ estimate_scales <- function(filepath,
                             remove_outliers = FALSE,
                             plotflag = FALSE,
                             normalized = FALSE,
-                            savecsv = FALSE,
-                            saverds = FALSE,
                             epsilon = 1e-4,
                             ncores = 4) {
   cat("********** Estimating scales - START **********\n")
@@ -484,7 +477,7 @@ estimate_scales <- function(filepath,
   if (plotflag) {
     plot(model, type = "b")
   }
-  rootname <- paste(rootname, modeltype, sep = "_")
+
 
   # Remove trials with high residuals (full model) and refit model
   if (remove_outliers) {
@@ -510,9 +503,6 @@ estimate_scales <- function(filepath,
     }
   }
 
-  # Extract scale values
-  scalevalues <- extract_scales(model, normalized = normalized)
-
   # Bootstrap CIs
   if (do_bootstrap) {
     cat("bootstrapping the model to calculate confidence intervals\n")
@@ -532,33 +522,6 @@ estimate_scales <- function(filepath,
 
     # Merge CI bounds with scale values
     scalevalues <- extract_scales(model, bootstrap, normalized = normalized)
-  }
-
-  # Save to Rda
-  if (saverds) {
-    filepath_rda <- file.path(
-      directory,
-      paste(rootname, "Rda", sep = ".")
-    )
-    print(paste0("saving in: ", filepath_rda))
-    if (do_bootstrap && remove_outliers) {
-      save(model, bootstrap, gof, file = filepath_rda)
-    } else if (do_bootstrap) {
-      save(model, bootstrap, file = filepath_rda)
-    } else if (remove_outliers) {
-      save(model, gof, file = filepath_rda)
-    } else {
-      save(model, file = filepath_rda)
-    }
-  }
-
-  # Export to CSV
-  if (savecsv) {
-    filepath_scales <- file.path(
-      directory,
-      paste(rootname, "scales", "csv", sep = ".")
-    )
-    write.csv(scalevalues, file = filepath_scales, row.names = FALSE, quote = FALSE)
   }
 
   cat("********** Estimating scales - END **********\n")
