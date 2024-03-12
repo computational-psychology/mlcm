@@ -6,6 +6,8 @@ output: pdf_document
 params:
   participant: DEMO
   stimulus: whites
+  input_dir: "data/results/DEMO/analyzed"
+  output_dir: "analysis"
 ---
 
 ```{r setup, include=FALSE}
@@ -31,9 +33,11 @@ we also use the package `{here}` for more flexible and portable paths.
 
 ```{r source function definitions}
 # Set project root directory
-here::i_am("surround_brightness/analysis/analysis-mlcm.Rmd")
+here::i_am("analysis/analysis-mlcm.Rmd")
 library(here)
-source(here(".", "surround_brightness", "analysis", "mlcm_functions.R"))
+source(here("analysis", "mlcm_functions.R"))
+input_dir <- here(params$input_dir)
+output_dir <- here(params$output_dir)
 ```
 
 The complete process of perceptual scale estimation that we use here
@@ -62,9 +66,8 @@ the name of which is constructed from participant initials, and stimulus name.
 
 ```{r path to data}
 filename_data <- paste(paste(params$participant, params$stimulus, sep = "_"), "csv", sep = ".")
-filepath_data <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_data)
 ```
-The original data will be loaded from `r toString(filepath_data)`
+The original data will be loaded from `r toString(filename_data)`
 
 The CSV file should be already in the format 'understood' by {MLCM}:
 
@@ -82,7 +85,7 @@ However, our current implementation allows only 2 contexts,
 i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
 
 ```{r load data}
-trial_data <- read.csv(filepath_data, sep = ",")[c("Resp", "I1", "I2", "C1", "C2")]
+trial_data <- read.csv(here(params$input_dir, filename_data), sep = ",")[c("Resp", "I1", "I2", "C1", "C2")]
 print(paste("number of trials:", nrow(trial_data)))
 print(head(trial_data))
 ```
@@ -277,11 +280,15 @@ and the trimmed data to be used in the rest of the analysis,
 with the filename containing the word `<...>.trimmed.csv`,
 
 ```{r save trimmed data}
-filepath_trimmed <- here(
-  "surround_brightness", "data", "results", params$participant, "analyzed",
-  paste(paste(params$participant, params$stimulus, modeltype, sep = "_"), "trimmed", "csv", sep = ".")
-)
-write.csv(removal$trimmed_data, filepath_trimmed, quote = FALSE, row.names = FALSE)
+filename_trimmed <- paste(
+  paste(params$participant, 
+        params$stimulus, 
+        modeltype, 
+        sep = "_"), 
+  "trimmed", 
+  "csv", 
+  sep = ".")
+write.csv(removal$trimmed_data, here(output_dir, filename_trimmed), quote = FALSE, row.names = FALSE)
 ```
 
 For archival purposes, we also save the removed trials, i.e., the outliers,
@@ -290,11 +297,15 @@ The first column in this file is
 the row number of that trial on the original dataset file.
 
 ```{r save outliers}
-filepath_outliers <- here(
-  "surround_brightness", "data", "results", params$participant, "analyzed",
-  paste(paste(params$participant, params$stimulus, modeltype, sep = "_"), "outliers", "csv", sep = ".")
-)
-write.csv(removal$outliers, filepath_outliers, quote = FALSE, row.names = FALSE)
+filename_outliers <- paste(
+  paste(params$participant, 
+        params$stimulus, 
+        modeltype, 
+        sep = "_"), 
+  "outliers", 
+  "csv", 
+  sep = ".")
+write.csv(removal$outliers, here(output_dir, filename_outliers), quote = FALSE, row.names = FALSE)
 ```
 
 Now, we re-estimate the final scale values on just the trimmed data,
@@ -348,11 +359,16 @@ We also save all the bootstrap samples to a file `<...>.bootsamples.csv`
 -- this is used for archival purposes, but not in the rest of the analysis pipeline.
 
 ```{r save bootstrap samples}
-filepath_bootsamples <- here(
-  "surround_brightness", "data", "results", params$participant, "analyzed",
-  paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "bootsamples", "csv", sep = ".")
-)
-write.csv(bootstrap$samples, filepath_bootsamples, quote = FALSE, row.names = FALSE)
+filename_bootsamples <- paste(
+  paste(params$participant, 
+        params$stimulus, 
+        modeltype, 
+        "norm", 
+        sep = "_"), 
+  "bootsamples", 
+  "csv", 
+  sep = ".")
+write.csv(bootstrap$samples, here(output_dir, filename_bootsamples), quote = FALSE, row.names = FALSE)
 ```
 
 ## Step 4: Export scales, CIs
@@ -368,11 +384,19 @@ and `_norm_` when the scales are normalized to 1.
 df_scales <- extract_scales(model, bootstrap, normalized = TRUE)
 print(df_scales)
 ```
+
 ```{r export scales to CSV}
 # Export to CSV
-filename_scales <- paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "scales", "csv", sep = ".")
-filepath_scales <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_scales)
-write.csv(df_scales, filepath_scales, quote = FALSE, row.names = FALSE)
+filename_scales <- paste(
+  paste(params$participant, 
+        params$stimulus, 
+        modeltype, 
+        "norm", 
+        sep = "_"), 
+  "scales",
+  "csv",
+  sep = ".")
+write.csv(df_scales, here(output_dir, filename_scales), quote = FALSE, row.names = FALSE)
 ```
 
 
@@ -383,7 +407,12 @@ We also save an additional `<...>.Rda` file.
 This is for archival purposes, but not used in the rest of the analysis pipeline.
 
 ```{r save to Rda}
-filename_rda <- paste(paste(params$participant, params$stimulus, modeltype, "norm", sep = "_"), "Rda", sep = ".")
-filepath_rda <- here("surround_brightness", "data", "results", params$participant, "analyzed", filename_rda)
-save(params, model, bootstrap, gof, file = filepath_rda)
+filename_rda <- paste(
+  paste(params$participant, 
+        params$stimulus, 
+        modeltype, "norm", 
+        sep = "_"), 
+  "Rda", 
+  sep = ".")
+save(params, model, bootstrap, gof, file = here(output_dir, filename_rda))
 ```
