@@ -334,7 +334,7 @@ extract_scales <- function(model, bootstrap, normalized = FALSE) {
 
   # Normalize scale values
   if (normalized) {
-    scale_values <- scale_values / scale_values[nrow(scale_values), 2]
+    scale_values <- scale_values / max(scale_values)
   }
 
   # Reformat
