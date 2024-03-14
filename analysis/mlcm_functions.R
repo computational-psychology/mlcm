@@ -218,6 +218,8 @@ remove_outliers <- function(
     cat("***********************************************************************\n")
   }
   start <- 1
+  trimmed_data <- observed_data[sort(deviance_residuals$ix[start:nrow(observed_data)]),]
+  outliers <- observed_data[deviance_residuals$ix[1:start - 1], ]
   while (gof$p < 0.05) {
     start <- start + 1
     cat("\n...trimming one more trial...\n")
