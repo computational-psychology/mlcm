@@ -153,17 +153,13 @@ def reindex_scales_file(participant: str, stimulus: str) -> Path | None:
     # Load scales
     try:
         modeltype = "full"
-        filename = (
-            f"{participant}_{stimulus}_{modeltype}_trimmed_{modeltype}_norm.scales.csv"
-        )
+        filename = f"{participant}_{stimulus}_{modeltype}_norm.scales.csv"
         scales_filepath = data_management.results_dir / participant / "analyzed" / filename
         scales = pd.read_csv(scales_filepath, sep=",")
     except FileNotFoundError:
         try:
             modeltype = "add"
-            filename = (
-                f"{participant}_{stimulus}_{modeltype}_norm.scales.csv"
-            )
+            filename = f"{participant}_{stimulus}_{modeltype}_norm.scales.csv"
             scales_filepath = data_management.results_dir / participant / "analyzed" / filename
             scales = pd.read_csv(scales_filepath, sep=",")
         except FileNotFoundError:
@@ -200,14 +196,16 @@ def estimate_scales(participant, stimulus):
         full stimulus name
     """
     output_filename = f"{participant}_{stimulus}.analysis.pdf"
-    output_filepath = data_management.results_dir / participant / "analyzed" / output_filename
+    output_dir = data_management.results_dir / participant / "analyzed"
 
     call = f"""rmarkdown::render('{ANALYSIS_FILE}',
                 params=list(
                     participant='{participant}',
-                    stimulus='{stimulus}'
+                    stimulus='{stimulus}',
+                    input_dir='{output_dir}',
+                    output_dir='{output_dir}'
                 ),
-                output_file='{output_filepath}'
+                output_file='{output_dir / output_filename}'
             )"""
 
     subprocess.call(["Rscript", "--vanilla", "-e", call])
