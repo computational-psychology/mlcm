@@ -69,6 +69,58 @@ def reindex_results(df):
     return out
 
 
+def export_reindexed_data(participant: str) -> list[str]:
+    """Split participant's trial data per stimulus, reindex, and save separately.
+
+    Produces one .csv file per stimulus, that can be ingested by the scale estimation.
+
+    Parameters
+    ----------
+    participant : str
+        initials/identifier of participant to reindex trial data for
+
+    Returns
+    -------
+    list[str]
+        stimulus names / identifiers that data was exported for
+    """
+    # Get the total results-file for this participant
+    results_filepath = (
+        data_management.results_dir / participant / "analyzed" / f"{participant}.csv"
+    )
+    participant_merged = pd.read_csv(results_filepath, sep=",")
+
+    # This merged dataframe can be queried (subset) for specific stimulus,
+    # or specific date, block, etc.
+    # stim_name = "checkerboard"
+    # subset = merged.query(f"stim == '{stim_name}'")
+
+    # Group the merged dataframe by stimulus
+    per_stim = participant_merged.groupby("stim")
+
+    # Then, reformat the dataframe to the format required by `{MLCM}` R-package
+    # reindexed = reindex_results(subset)
+    reindexed = per_stim.apply(reindex_results, include_groups=False)
+
+    # Export reindexed data for each stimulus
+    stim_names = []
+    for stim_name, df in reindexed.groupby("stim"):
+        # Save reindexed, stimulus-specific results to .csv file
+        # This file is what gets ingested by the scale-estimation Rmd
+        stim_name = stim_name.replace("_", "-")
+        df.to_csv(
+            data_management.results_dir
+            / participant
+            / "analyzed"
+            / f"{participant}_{stim_name}.csv",
+            sep=",",
+            index=False,
+        )
+        stim_names.append(stim_name)
+
+    return stim_names
+
+
 def reindex_scales(scales, intensities=exp_intensities):
     # Index contexts
     scales["context"] = scales["context"].astype(str).replace(IDC_TO_CONTEXTS)
@@ -78,6 +130,58 @@ def reindex_scales(scales, intensities=exp_intensities):
     scales["intensity"] = scales["intensity"].replace(ints).astype(float)
 
     return scales
+
+
+def reindex_scales_file(participant: str, stimulus: str) -> Path | None:
+    """Finds estimates scales, and convert them back into more readable format
+
+    Converts indices back to intensity values, context names.
+    Also adds "participant" and "stimulus" columns, to allow for merging.
+
+    Parameters
+    ----------
+    participant : str
+        initials/identifier of participant to find scales for
+    stimulus : str
+        stimulus name / identifier to find scales for
+
+    Returns
+    -------
+    Path | None
+        filepath to scales file that has been converted, or None if no file was converted.
+    """
+    # Load scales
+    try:
+        modeltype = "full"
+        filename = (
+            f"{participant}_{stimulus}_{modeltype}_trimmed_{modeltype}_norm.scales.csv"
+        )
+        scales_filepath = data_management.results_dir / participant / "analyzed" / filename
+        scales = pd.read_csv(scales_filepath, sep=",")
+    except FileNotFoundError:
+        try:
+            modeltype = "add"
+            filename = (
+                f"{participant}_{stimulus}_{modeltype}_norm.scales.csv"
+            )
+            scales_filepath = data_management.results_dir / participant / "analyzed" / filename
+            scales = pd.read_csv(scales_filepath, sep=",")
+        except FileNotFoundError:
+            return None
+
+    # Reindex back
+    scales = reindex_scales(scales)
+
+    # Add participant, stimulus, info
+    if "stim" not in scales:
+        scales.insert(loc=0, column="stim", value=stimulus)
+    if "participant" not in scales:
+        scales.insert(loc=0, column="participant", value=participant)
+
+    # Save reindexed scales, overwriting
+    scales.to_csv(scales_filepath, sep=",", index=False)
+
+    return scales_filepath
 
 
 def estimate_scales(participant, stimulus):
@@ -116,77 +220,23 @@ if __name__ == "__main__":
         if any([substring in participant.upper() for substring in SKIP_PARTICIPANTS]):
             continue
 
-        # Get the total results-file for this participant
-        results_filepath = (
-            data_management.results_dir / participant / "analyzed" / f"{participant}.csv"
-        )
-        participant_merged = pd.read_csv(results_filepath, sep=",")
+        # Split, reindex, and save data for scale estimation
+        stim_names = export_reindexed_data(participant)
 
-        # This merged dataframe can be queried (subset) for specific stimulus,
-        # or specific date, block, etc.
-        # stim_name = "checkerboard"
-        # subset = merged.query(f"stim == '{stim_name}'")
-
-        # Group the merged dataframe by stimulus
-        per_stim = participant_merged.groupby("stim")
-
-        # Then, reformat the dataframe to the format required by `{MLCM}` R-package
-        # reindexed = reindex_results(subset)
-        reindexed = per_stim.apply(reindex_results, include_groups=False)
-
-        # Estimate scales for each stimululs
-        for stim_name, df in reindexed.groupby("stim"):
-            # Save reindexed, stimulus-specific results to .csv file
-            # This file is what gets ingested by the scale-estimation Rmd
-            stim_name = stim_name.replace("_", "-")
-            df.to_csv(
-                data_management.results_dir
-                / participant
-                / "analyzed"
-                / f"{participant}_{stim_name}.csv",
-                sep=",",
-                index=False,
-            )
-
-            # Actually estimate the scales
+        # Actually estimate the scales
+        for stim_name in stim_names:
             estimate_scales(participant, stim_name)
 
-            # Load scales
-            try:
-                modeltype = "full"
-                filename = (
-                    f"{participant}_{stim_name}_{modeltype}_trimmed_{modeltype}_norm.scales.csv"
-                )
-                scales_filepath = data_management.results_dir / participant / "analyzed" / filename
-                scales = pd.read_csv(scales_filepath, sep=",")
-            except FileNotFoundError:
-                try:
-                    modeltype = "add"
-                    filename = (
-                        f"{participant}_{stim_name}_{modeltype}_norm.scales.csv"
-                    )
-                    scales_filepath = data_management.results_dir / participant / "analyzed" / filename
-                    scales = pd.read_csv(scales_filepath, sep=",")
-                except FileNotFoundError:
-                    continue
-
-            # Reindex back
-            scales = reindex_scales(scales)
-
-            # Add participant, stimulus, info
-            if not "stim" in scales:
-                scales.insert(loc=0, column="stim", value=stim_name)
-            if not "participant" in scales:
-                scales.insert(loc=0, column="participant", value=participant)
-
-            # Save reindexed scales, overwriting
-            scales.to_csv(scales_filepath, sep=",", index=False)
-
-            # Aggregate filepaths to scales
-            scales_filepaths.append(scales_filepath)
+        # Reindex estimated scales
+        for stim_name in stim_names:
+            scales_filepath = reindex_scales_file(participant, stimulus=stim_name)
 
     # Merge all scales into single CSV
+    scales_filepaths = data_management.scales_files()
+    scales_filepaths = [
+        f
+        for f in scales_filepaths
+        if not any([substring in str(f).upper() for substring in SKIP_PARTICIPANTS])
+    ]
     scales_merged = preprocess.merge_results(scales_filepaths)
-    scales_merged.to_csv(
-        data_management.results_dir / "ALL.scales.csv", sep=",", index=False
-    )
+    scales_merged.to_csv(data_management.results_dir / "ALL.scales.csv", sep=",", index=False)
