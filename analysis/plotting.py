@@ -187,7 +187,7 @@ if __name__ == "__main__":
     for (participant, stim), df in scales.groupby(["participant", "stim"]):
         # Plot scales
         plt.figure(figsize=(8, 8))
-        scales_participant(scales)
+        scales_participant(df)
         plt.savefig(
             data_management.fig_path / f"{participant}_{stim.replace('_', '-')}.scales.pdf"
         )
