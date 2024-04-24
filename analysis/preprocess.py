@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -76,6 +78,60 @@ def choice_frequencies(results):
     freqs_upper = pd.DataFrame(x, columns=freqs_left.columns, index=freqs_left.index)
 
     return freqs_upper
+
+
+def nominal_luminance(intensity, lutfile=Path(__file__).parents[1] / "experiment" / "lut_viewpixx.csv"):
+    """Convert given intensity(s) to nominal luminances, using given Lookup Table
+
+    Parameters
+    ----------
+    intensity : float or Sequence[float]
+        intensity(s) to convert to nominal luminances
+    lutfile : Path or str, optional
+        path to csv file containing LookUp Tabl,
+        by default Path(__file__).parents[1]/"experiment"/"lut_viewpixx.csv"
+
+    Returns
+    -------
+    float, or List[float]
+        nominal luminance(s) for each intensity
+    """
+    lut = pd.read_csv(lutfile, delim_whitespace=True)
+
+    luminances = []
+    try:
+        for i in intensity:
+            # lookup i in LUT
+            l = lut.iloc[(lut["IntensityIn"]-i).abs().argsort()[:2]]["Luminance"].mean()
+            luminances.append(l)
+    except TypeError:
+        luminances = lut.iloc[(lut["IntensityIn"]-intensity).abs().argsort()[:2]]["Luminance"].mean()
+
+    return luminances
+
+
+def add_nominal_luminances(df, lutfile=Path(__file__).parents[1] / "experiment" / "lut_viewpixx.csv"):
+    """Add nominal luminance of given intensities to dataframe
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        dataframe to convert intensities to luminances for
+    lutfile : Path or str
+        path to LUT-csv to use for luminance lookup
+
+    Returns
+    -------
+    pandas.DataFrame
+        df, with added column "luminance_nominal_cdm2"
+    """
+    lums = pd.Series(nominal_luminance(df["intensity"].unique(), lutfile=lutfile), name="luminance_nominal_cdm2")
+
+    lut = pd.concat([pd.Series(df["intensity"].unique(), name="intensity"), lums], axis="columns")
+
+    df = df.merge(lut)
+
+    return df
 
 
 if __name__ == "__main__":

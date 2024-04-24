@@ -237,4 +237,8 @@ if __name__ == "__main__":
         if not any([substring in str(f).upper() for substring in SKIP_PARTICIPANTS])
     ]
     scales_merged = preprocess.merge_results(scales_filepaths)
+
+    # Add nominal luminances to all scales
+    scales_merged = pd.read_csv(data_management.results_dir / "ALL.scales.csv", sep=",")
+    scales_merged = preprocess.add_nominal_luminances(scales_merged, exp_intensities)
     scales_merged.to_csv(data_management.results_dir / "ALL.scales.csv", sep=",", index=False)
