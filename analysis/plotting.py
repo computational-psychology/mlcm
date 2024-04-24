@@ -81,13 +81,21 @@ def scales_participant(scales, palette=palette, CI=None):
     if CI is None and ("scale_CI_low" in scales and "scale_CI_high" in scales):
         CI = True
 
-    ax = sns.scatterplot(data=scales, x="intensity", y="scale", hue="context", palette=palette)
+    if "luminance_nominal_cdm2" in scales:
+        x_var = "luminance_nominal_cdm2"
+        x_label = "Luminance [$cdm^{-2}$]"
+    else:
+        x_var = "intensity"
+        x_label = "Intensity (normalized)"
+
+    ax = sns.scatterplot(data=scales, x=x_var, y="scale", hue="context", palette=palette)
+
     if CI:
         for context in scales["context"].unique():
             curr = scales[scales["context"] == context]
             yerr = (curr["scale"] - curr["scale_CI_low"], curr["scale_CI_high"] - curr["scale"])
             ax.errorbar(
-                curr["intensity"],
+                curr[x_var],
                 curr["scale"],
                 yerr=yerr,
                 fmt="none",
@@ -95,8 +103,8 @@ def scales_participant(scales, palette=palette, CI=None):
                 capsize=0,
             )
 
-    ax.set_ylabel("Perceptual scale")
-    ax.set_xlabel("Luminance [$cdm^{-2}$]")
+    ax.set_ylabel("Brightness")
+    ax.set_xlabel(x_label)
 
     return ax
 
@@ -124,20 +132,27 @@ def scales_all(scales, palette=palette, CI=None):
     if CI is None and ("scale_CI_low" in scales and "scale_CI_high" in scales):
         CI = True
 
+    if "luminance_nominal_cdm2" in scales:
+        x_var = "luminance_nominal_cdm2"
+        x_label = "Luminance [$cdm^{-2}$]"
+    else:
+        x_var = "intensity"
+        x_label = "Intensity (normalized)"
+    xlim = (-.1*scales[x_var].max(), 1.1*scales[x_var].max())
+
     G = sns.FacetGrid(
         scales,
         col="participant",
         row="stim",
         hue="context",
-        xlim=(-.1, 1.2),
+        xlim=xlim,
         ylim=(-.1, 1.2),
         palette=palette,
         margin_titles=True,
-        subplot_kws={'aspect': 'equal'}
+        subplot_kws={'box_aspect': 1}
     )
-    G.set_titles(col_template='{col_name}', row_template='{row_name}')
-    G.map(sns.scatterplot, "intensity", "scale")
-    G.add_legend()
+
+    G.map(sns.scatterplot, x_var, "scale")
 
     if CI:
         for (stim, participant), axes in G.axes_dict.items():
@@ -147,13 +162,19 @@ def scales_all(scales, palette=palette, CI=None):
                 curr = subset[subset["context"] == context]
                 yerr = (curr["scale"] - curr["scale_CI_low"], curr["scale_CI_high"] - curr["scale"])
                 axes.errorbar(
-                    curr["intensity"],
+                    curr[x_var],
                     curr["scale"],
                     yerr=yerr,
                     fmt="none",
                     ecolor=palette[context],
                     capsize=0,
                 )
+
+    G.set_titles(col_template='{col_name}', row_template='{row_name}')
+    G.set_axis_labels('', '', clear_inner=True)
+    G.figure.supylabel("Brightness")
+    G.figure.supxlabel(x_label)
+    G.add_legend()
 
     return G
 
