@@ -1,15 +1,15 @@
 #### MLCM analysis
+library(MLCM)
+library(snow)
+ncores <- 4
+workers <- replicate(ncores, "localhost")
+master <- "localhost"
+
+source("scale_estimation/pboot.mlcm.R")
+source("scale_estimation/gofutils.R")
+source("scale_estimation/pbinom.diagnostics.mlcm.R")
+
 analyzemlcm <- function(rootname, modeltype = "full", do_bootstrap = FALSE, nsim = 1000, fr = FALSE, thr = 2.5) {
-  library(MLCM)
-  library(snow)
-  ncores <- 4
-  workers <- replicate(ncores, "localhost")
-  master <- "localhost"
-
-  source("pboot.mlcm.R")
-  source("gofutils.R")
-  source("pbinom.diagnostics.mlcm.R")
-
   # epsilon is the resolution given to the optimization routine. At a difference
   # of epsilon is where the algorithm stops. We have issues with the default
   # epsilon for the full model. It tends to be stuck at local minima
