@@ -17,7 +17,6 @@ def extract_stim_levels(trial_responses, dim_names=("a", "b"), pair_names=(0, 1)
 
 
 def choice_frequencies(trial_responses, choice, dim_names=("a", "b"), pair_names=(0, 1)):
-
     # Construct table of all possible stimulus pairings
     unique_levels = extract_stim_levels(
         trial_responses, dim_names=dim_names, pair_names=pair_names
@@ -64,7 +63,11 @@ def choice_frequencies(trial_responses, choice, dim_names=("a", "b"), pair_names
 def conjoint_choice_frequencies(trial_responses, dim_names=("a", "b"), pair_names=(0, 1)):
     freqs = []
     for name in pair_names:
-        freqs.append(choice_frequencies(trial_responses, choice=name, dim_names=dim_names))
+        freqs.append(
+            choice_frequencies(
+                trial_responses, choice=name, dim_names=dim_names, pair_names=pair_names
+            )
+        )
 
     # Don't care about ordering of stimuli (i.e., mirroring)
     # so sum upper and lower triangles
