@@ -16,6 +16,19 @@ def extract_stim_levels(trial_responses, dim_names=("a", "b"), pair_names=(0, 1)
     return unique_levels
 
 
+def extract_names(trials):
+    dim_names = set()
+    pair_names = set()
+    for name in trials.columns:
+        parts = name.split("_")
+        dim_names.add("_".join(name.split("_")[:-1]))
+        pair_names.add(parts[-1])
+    dim_names = sorted(list(dim_names))
+    pair_names = sorted(list(pair_names))
+
+    return dim_names, pair_names
+
+
 def choice_frequencies(trial_responses, choice, dim_names=("a", "b"), pair_names=(0, 1)):
     # Construct table of all possible stimulus pairings
     unique_levels = extract_stim_levels(
