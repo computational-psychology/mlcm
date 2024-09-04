@@ -91,3 +91,65 @@ def conjoint_choice_frequencies(trial_responses, dim_names=("a", "b"), pair_name
     freqs_upper = pd.DataFrame(freqs_upper, columns=freqs[0].columns, index=freqs[0].index)
 
     return freqs_upper
+
+
+def reindex_results(trial_responses, dim_names, pair_names):
+    """Transform results dataframe to format required by {MLCM}
+
+    The `{MLCM}` package requires the data CSV in a very specific format:
+    - every row is a trial
+    - the first column is called 'Resp', which contains the binary response to the trial.
+    - the four columns containing the stimuli indices presented in that trial.
+
+    In this case we use `L1` and `C1`
+    to code the luminance and context of the first stimulus, respectively.
+    Similarly `L2` and `C2` code the luminance and context of the second stimulus.
+    The entries are integers starting from `1`.
+
+    For the luminance dimension there is no limit or restriction on the amount of values.
+    However, the current implementation allows only 2 contexts,
+    i.e., the columns `C1` and `C2` can only contain the integers `1` or `2`.
+
+    Parameters
+    ----------
+    trial_responses : pandas.DataFrame
+        raw data from experiment code
+
+    Returns
+    -------
+    pandas.DataFrame
+        reindexed data in the format that MLCM requires
+    """
+
+    # Determine stimulus levels per dimension
+    unique_levels = extract_stim_levels(
+        trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
+
+    # Setup index-mappings, per stimulus dimension
+    indexing = {}
+    for dim in dim_names:
+        indexing[dim] = {level: idx + 1 for idx, level in enumerate(sorted(unique_levels[dim]))}
+
+    # Setup index-mapping for responses (0 or 1)
+    indexing["response"] = {name: idx for idx, name in enumerate(reversed(pair_names))}
+
+    # Setup column-renaming mapping
+    columns = {"response": "Resp"}
+    for dim in dim_names:
+        columns.update(
+            {f"{dim}_{name}": f"{dim[0].upper()}{idx+1}" for idx, name in enumerate(pair_names)}
+        )
+
+    # Rename columns
+    reindexed = trial_responses.rename(columns=columns)[[*columns.values()]]
+
+    # Remap values
+    for dim in dim_names:
+        reindexed = reindexed.replace(
+            {f"{dim[0].upper()}1": indexing[dim], f"{dim[0].upper()}2": indexing[dim]}
+        )
+    reindexed = reindexed.replace({"Resp": indexing["response"]})
+    reindexed = reindexed.astype("int")
+
+    return reindexed
