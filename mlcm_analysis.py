@@ -151,3 +151,19 @@ def reindex_results(trial_responses, dim_names, pair_names):
     reindexed = reindexed.astype("int")
 
     return reindexed
+
+
+def reindex_scales(scales, dim_names, stim_levels):
+    # Rename
+    DF = (
+        # Column- and row-(index-) names
+        scales.rename(
+            columns={idx: val for idx, val in enumerate(sorted(stim_levels[dim_names[0]]))},
+            index={idx: val for idx, val in enumerate(sorted(stim_levels[dim_names[1]]))},
+        )
+        # Headers
+        .rename_axis(dim_names[1], axis="index")
+        .rename_axis(dim_names[0], axis="columns")
+    )
+
+    return DF
