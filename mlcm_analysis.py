@@ -167,3 +167,13 @@ def reindex_scales(scales, dim_names, stim_levels):
     )
 
     return DF
+
+
+def reorient_scales(scales, orient="wide"):
+    if orient == "long":
+        DF = scales.melt(value_name="scale", var_name=scales.columns.name, ignore_index=False)
+
+    if orient == "row":
+        DF = scales.stack().to_frame().T.reorder_levels(order=[-1, 0], axis="columns")
+
+    return DF
