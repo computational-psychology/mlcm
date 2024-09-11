@@ -2,8 +2,12 @@ import itertools
 
 import numpy as np
 import pandas as pd
+from rpy2 import robjects
 
 from trial_generation import pairwise_product
+
+robjects.r.source("scale_estimation/analysis_mlcm.R")
+analyze_mlcm = robjects.r["analyzemlcm"]
 
 
 def extract_stim_levels(trial_responses, dim_names=("a", "b"), pair_names=(0, 1)):
