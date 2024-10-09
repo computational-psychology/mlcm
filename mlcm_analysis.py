@@ -138,6 +138,36 @@ def reindex_results(trial_responses, dim_names, pair_names):
     return reindexed
 
 
+def estimate_scales(
+    trial_responses,
+    dim_names,
+    stim_levels,
+    pair_names,
+    modeltype="full",
+    bootstrap_runs=0,
+    results_file="sim_mlcm",
+):
+    # Save to .csv in the format the MLCM package needs
+    reindexed_results = reindex_results(
+        trial_responses=trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
+    reindexed_results.to_csv(f"{results_file}.csv")
+
+    # Estimate scales
+    analyze_mlcm(
+        results_file, modeltype=modeltype, do_bootstrap=(bootstrap_runs > 0), nsim=bootstrap_runs
+    )
+
+    # Extract scales and convert to DF
+    robjects.r["load"](f"{results_file}_{modeltype}.glm.MLCM")
+    scales = np.array(robjects.r["obs.scales"])
+    scales = pd.DataFrame(scales)
+
+    scales = reindex_scales(scales, dim_names=dim_names, stim_levels=stim_levels)
+
+    return scales
+
+
 def reindex_scales(scales, dim_names, stim_levels):
     # Rename
     DF = (
