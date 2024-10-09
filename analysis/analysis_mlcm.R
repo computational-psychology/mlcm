@@ -5,9 +5,9 @@ ncores <- 4
 workers <- replicate(ncores, "localhost")
 master <- "localhost"
 
-source("scale_estimation/pboot.mlcm.R")
-source("scale_estimation/gofutils.R")
-source("scale_estimation/pbinom.diagnostics.mlcm.R")
+source("mlcm_analysis/pboot.mlcm.R")
+source("mlcm_analysis/gofutils.R")
+source("mlcm_analysis/pbinom.diagnostics.mlcm.R")
 
 analyzemlcm <- function(rootname, modeltype = "full", do_bootstrap = FALSE, nsim = 1000, fr = FALSE, thr = 2.5) {
   # epsilon is the resolution given to the optimization routine. At a difference

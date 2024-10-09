@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from rpy2 import robjects
 
 from . import utils
 
-robjects.r.source("scale_estimation/analysis_mlcm.R")
+robjects.r.source(str(Path(__file__).parent / "analysis_mlcm.R"))
 analyze_mlcm = robjects.r["analyzemlcm"]
 
 
