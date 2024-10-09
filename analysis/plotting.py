@@ -37,7 +37,7 @@ def plot_scales(scales, CI=None, dim_names=("a", "b")):
     return p
 
 
-def conjoint_proportions(freqs, N=15):
+def conjoint_proportions(freqs, N=1, choice=None):
     """Plot heatmap of conjoint choice proportions
     Parameters
     ----------
@@ -55,15 +55,9 @@ def conjoint_proportions(freqs, N=15):
     --------
     mlcm_analysis.conjoint_choice_frequencies
     """
-    names = freqs.index.names + freqs.columns.names
-    dim_names = set()
-    pair_names = set()
-    for name in names:
-        parts = name.split("_")
-        dim_names.add("_".join(name.split("_")[:-1]))
-        pair_names.add(parts[-1])
-    dim_names = sorted(list(dim_names))
-    pair_names = sorted(list(pair_names))
+    pair_names = (freqs.index.name, freqs.columns.name)
+    if choice is None:
+        choice = pair_names[1]
 
     outer_levels = sorted(list({column[0] for column in freqs.columns}))
     inner_levels = sorted(list(freqs[freqs.columns[0][0]].columns))
@@ -95,7 +89,7 @@ def conjoint_proportions(freqs, N=15):
 
     # Y-axis
     ax.set_ylabel(f"stimulus {pair_names[0]}")
-    ax.set_title(f"Frequency of choosing stimulus {pair_names[1]}")
+    ax.set_title(f"Frequency of choosing stimulus {choice}")
     secyl = ax.secondary_yaxis(location=-0.05)
     secyl.set_yticks([0, len(inner_levels), len(inner_levels) * 2], labels=[])
     secyl.tick_params("y", length=40, width=1.5)
