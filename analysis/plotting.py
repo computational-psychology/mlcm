@@ -1,12 +1,8 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 import seaborn.objects as so
 
-# data visualization parameters
 sns.set_context("talk")
 sns.set_style("ticks", {"xtick.direction": "in", "ytick.direction": "in"})
 
@@ -14,14 +10,8 @@ sns_theme = sns.plotting_context("talk")
 sns_theme.update(sns.axes_style("white"))
 sns_theme.update({"xtick.direction": "in", "ytick.direction": "in"})
 
-palette = {"on black": "#252525", "on white": "#969696"}
 
-red = "#e41a1c"
-blue = "#377eb8"
-green = "#4daf4a"
-
-
-def plot_scales(scales, CI=None, encoding_funcs=None, dim_names=("a", "b")):
+def plot_scales(scales, CI=None, dim_names=("a", "b")):
     if CI is None:
         if "CI_high" in scales and "CI_low" in scales:
             CI = True
@@ -38,12 +28,6 @@ def plot_scales(scales, CI=None, encoding_funcs=None, dim_names=("a", "b")):
     if CI:
         p = p.add(so.Range(), ymin="CI_low", ymax="CI_high")
 
-    if encoding_funcs:
-        df = evaluate_encoding_funcs(encoding_funcs, dim_names=dim_names).rename(
-            {"psi": "scale"}, axis="columns"
-        )
-        p = p.add(so.Lines(), data=df)
-
     p = p.label(
         y=r"Perceptual scale $\hat\psi$",
         x="Luminance (norm.)",
@@ -51,86 +35,6 @@ def plot_scales(scales, CI=None, encoding_funcs=None, dim_names=("a", "b")):
     ).layout(size=(5, 5))
 
     return p
-
-
-def evaluate_encoding_funcs(encoding_funcs, xlim=(0.0, 1.0), nsamples=1000, dim_names=("a", "b")):
-    xs = pd.Series(np.linspace(*xlim, nsamples), name=dim_names[1])
-
-    psis = []
-    for level, fun in encoding_funcs.items():
-        psi = pd.Series(fun(xs), name=level)
-        psis.append(psi)
-
-    df = pd.concat([xs, *psis], axis="columns")
-    df = df.melt(id_vars=dim_names[1], var_name=dim_names[0], value_name="psi")
-    return df
-
-
-def plot_encoding_funcs(encoding_funcs, xlim=(0.0, 1.0), nsamples=1000, dim_names=("a", "b")):
-    df = evaluate_encoding_funcs(encoding_funcs, xlim=xlim, nsamples=nsamples, dim_names=dim_names)
-    p = so.Plot(
-        data=df,
-        x=dim_names[1],
-        y="psi",
-        color=dim_names[0],
-    ).add(so.Lines())
-
-    return p
-
-
-def plotError(sim_repeats, nrepeat, orepeat, static, error=[], error_confidence=[]):
-    # Create names for error plot and .csv file
-    file_name = os.path.join("error", f"error_{sim_repeats}_{nrepeat}_{orepeat}_{static}.csv")
-    error_name = os.path.join("error", f"error_{sim_repeats}_{nrepeat}_{orepeat}_{static}.pdf")
-
-    # Load error based on arguments
-    if os.path.exists(file_name) and error == []:
-        # print("Loading error successful")
-        error = np.loadtxt(file_name, delimiter=",")
-    elif not os.path.exists(file_name) and error == []:
-        print("Error is not defined.")
-        exit(1)
-
-    plt.figure(figsize=(8, 4.8))
-
-    # Noise range
-    plt.plot(np.arange(0, 0.11, 0.01), error, color="gray")
-
-    # Set the x-axis and y-axis labels
-    plt.xlabel("Noise level at decision Stage")
-    plt.ylabel("RMSE")
-
-    # Set the plot title
-    # plt.title('RMSE and Noise Level')
-
-    # Add dotted lines for range of noise
-    plt.axvline(
-        x=0.0321, color="steelblue", linestyle="dotted", label="Lowest measured noise level"
-    )
-    plt.axvline(
-        x=0.0672, color="indianred", linestyle="dotted", label="Highest measured noise level"
-    )
-
-    # Add a legend with position in the upper right corner
-    plt.legend(loc="upper right", fontsize="small")
-
-    plt.fill_between(
-        np.arange(0, 0.11, 0.01),
-        error_confidence[:, 0],
-        error_confidence[:, 1],
-        alpha=0.3,
-        label="Confidence Interval",
-    )
-
-    if sim_repeats >= 1000:
-        plt.savefig(error_name)
-
-        np.savetxt(file_name, error, delimiter=",")
-
-    # Show the plot
-    plt.show()
-
-    plt.close()
 
 
 def conjoint_proportions(freqs, N=15):
