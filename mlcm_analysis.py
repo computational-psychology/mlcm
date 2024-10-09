@@ -1,10 +1,7 @@
-import itertools
-
-import numpy as np
 import pandas as pd
 from rpy2 import robjects
 
-from trial_generation import pairwise_product
+import utils
 
 robjects.r.source("scale_estimation/analysis_mlcm.R")
 analyze_mlcm = robjects.r["analyzemlcm"]
@@ -34,50 +31,35 @@ def extract_names(trials):
 
 
 def choice_frequencies(trial_responses, choice, dim_names=("a", "b"), pair_names=(0, 1)):
-    # Construct table of all possible stimulus pairings
-    unique_levels = extract_stim_levels(
-        trial_responses, dim_names=dim_names, pair_names=pair_names
-    )
-    full_pairs = pairwise_product(unique_levels, pair_names=pair_names)
-
-    # Pivot to long: columns to index-levels
-    full_pairs = full_pairs.set_index(keys=list(full_pairs.columns))
-
-    # Add 0.0 response to all entries
-    full_pairs["response"] = 0.0
-
+    # Recode choices
     # Other response option
     other_name = [n for n in pair_names if n is not choice][0]
-
-    freqs = (
+    s = (
         trial_responses.copy()
         # Code "choice" => 1, other response 0
         .replace({"response": {choice: 1, other_name: 0}})
         .astype({"response": int})  # response as int for summing
-        # Count per cell, i.e., conjoint stimulus levels
-        .groupby(
-            [f"{dim}_{pair}" for pair, dim in itertools.product(pair_names, dim_names)]
-        )  # group trials by stimulus levels, i.e., conjoint
-        .aggregate({"response": "sum"})  # sum responses per conjoint cell
-        # Fill-out table, adding in combos not shown
-        .join(
-            full_pairs, how="outer", rsuffix="_freqs"
-        )  # join full set of pairings, to get balanced table
-        .drop(columns="response_freqs")
-        # Format
-        .unstack(
-            level=[f"{dim}_{pair}" for dim, pair in itertools.product(dim_names, [pair_names[1]])],
-            sort=True,
-            fill_value=0.0,
-        )
-        .droplevel(axis="columns", level=0)  # remove "response" index
-        .sort_index(axis="columns", level=[-2, -1])
     )
+
+    # Construct table of all possible stimulus pairings
+    unique_levels = extract_stim_levels(
+        trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
+
+    # Calculate frequencies for complete set
+    freqs = utils.conjoint_frequencies(
+        s, stim_levels=unique_levels, col="response", pair_names=pair_names
+    )
+    freqs.index = freqs.index.reorder_levels(dim_names)
+    freqs.columns = freqs.columns.reorder_levels(dim_names)
+    freqs = freqs.sort_index(axis="index").sort_index(axis="columns")
+    freqs.index.name, freqs.columns.name = pair_names
 
     return freqs
 
 
 def conjoint_choice_frequencies(trial_responses, dim_names=("a", "b"), pair_names=(0, 1)):
+    # For each choice, calculate frequencies
     freqs = []
     for name in pair_names:
         freqs.append(
@@ -88,9 +70,8 @@ def conjoint_choice_frequencies(trial_responses, dim_names=("a", "b"), pair_name
 
     # Don't care about ordering of stimuli (i.e., mirroring)
     # so sum upper and lower triangles
-    freqs_upper = np.triu(freqs[1].fillna(0)) + np.tril(freqs[0].fillna(0)).T
-    freqs_upper[np.tril_indices(freqs_upper.shape[0])] = np.nan
-    freqs_upper = pd.DataFrame(freqs_upper, columns=freqs[0].columns, index=freqs[0].index)
+    freqs_upper = utils.unmirror_frequencies(freqs[0].fillna(0).T + freqs[1])
+    freqs_upper.index.name, freqs_upper.columns.name = ("A", "B")
 
     return freqs_upper
 
