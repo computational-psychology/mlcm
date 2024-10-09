@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from rpy2 import robjects
 
-import utils
+from . import utils
 
 robjects.r.source("scale_estimation/analysis_mlcm.R")
 analyze_mlcm = robjects.r["analyzemlcm"]
