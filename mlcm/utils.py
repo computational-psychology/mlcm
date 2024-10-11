@@ -25,3 +25,26 @@ def extract_stim_levels(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B"
         unique_levels[dim] = pd.concat([trials[f"{dim}_{pair}"] for pair in pair_names]).unique()
 
     return unique_levels
+
+
+def dimension_combinations(stim_levels):
+    """All possible unique stimuli, i.e., combinations of levels for stimulus dimensions
+
+    The Cartesian product, i.e., all possible combinations of `dim1` x `dim2`
+
+    Parameters
+    ----------
+    stim_levels : dict[str, list]
+        unique stimulus levels per stimulus dimension,
+        e.g., {"dim1": [...], "dim2": [...]}
+
+    Returns
+    -------
+    pandas.MultiIndex
+        all possible combinations of levels for the stimulus dimensions
+    """
+    return (
+        pd.MultiIndex.from_product(list(stim_levels.values()), names=stim_levels.keys())
+        .swaplevel()
+        .sort_values()
+    )
