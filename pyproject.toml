@@ -1,0 +1,60 @@
+[project]
+name = "mlcm"
+description = "Maximum-Likelihood Conjoint Measurement analysis library"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: R",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+
+authors = [
+    { name = "Guillermo Aguilar", email = "guillermo.aguilar@mail.tu-berlin.de" },
+    { name = "Joris Vincent", email = "j.vincent@tu-berlin.de" },
+]
+maintainers = [
+    { name = "Guillermo Aguilar", email = "guillermo.aguilar@mail.tu-berlin.de" },
+    { name = "Joris Vincent", email = "j.vincent@tu-berlin.de" },
+]
+
+version = "0.0.1"
+
+
+requires-python = ">=3.8"
+dependencies = ["numpy", "matplotlib", "pandas", "rpy2"]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "flake8"]
+docs = [
+    "jupyter-book==0.14",
+    "jupytext>=1.13.3",
+    "jupyterlab_myst",
+    "myst_nb",
+    "ipywidgets",
+    "sphinx-hoverxref",
+]
+
+[project.urls]
+repository = "https://github.com/computational-psychology/mlcm.git"
+
+[build-system]
+requires = ["setuptools >= 40.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."] # list of folders that contain the packages (["."] by default)
+include = [
+    "mlcm*",
+] # package names should match these glob patterns (["*"] by default)
+namespaces = false # to disable scanning PEP 420 namespaces (true by default)
+
+
+[tool.black]
+line-length = 99
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 99
