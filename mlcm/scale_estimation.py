@@ -1,7 +1,57 @@
 # imports
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
+
+importr('MLCM')
 
 
-def _estimate(): ...
+def _estimate(parsed_trial_responses, modeltype='add', method='glm.fit', epsilon=1e-4):
+    """ Run MLCM in R to get the point estimates for the scale.
+
+
+    Parameters
+    ----------
+    parsed_trial_responses : pandas Dataframe
+        (n x 5) DataFrame with experimental data containing n trials.
+        First column has observeris repsonses coded with 0 or 1,
+        Second column contains the stimuli index for dimension 1, stimulus 1,
+        Third column contains the stimuli index for dimension 1, stimulus 2,
+        Fourth column contains the stimuli index for dimension 2, stimulus 1,
+        Fifth column contains the stimuli index for dimension 2, stimulus 2
+        (This format is the same as in the MLCM R package.)
+    modeltype : str, optional
+        Type of MLCM model to be fit from set ['indep', 'add' or 'full'].
+        The default is 'add'.
+    method : str, optional
+        Fitting routine. Options are ['glm.fit', 'brglm.fit']. The default is
+        'glm.fit'.
+    epsilon : float, optional
+        Convergence tolerance. The default is 1e-4.
+
+    Returns
+    -------
+    Rpy2 object with output from MLCM package
+
+    """
+    # Pass through rpy2 to R function
+    #   - ideally directly to {{MLCM}}
+    #   - thin wrapper may be necessary (?)
+
+    r_mlcm = robjects.r['mlcm']
+    r_as_mlcm_df = robjects.r['as.mlcm.df']
+
+    # converts pandas DataFrame to R DataFrame
+    with (robjects.default_converter + pandas2ri.converter).context():
+      r_data = robjects.conversion.get_conversion().py2rpy(parsed_trial_responses)
+    
+    # as.mlcm.df() 
+    r_data = r_as_mlcm_df(r_data)
+    
+    # estimation itself by calling mlcm(....)
+    scale_obj = r_mlcm(r_data, model=modeltype)
+
+    return scale_obj
 
 
 def compare_models():
@@ -60,9 +110,7 @@ def scale_estimation(trial_responses, **options):
     ...
 
     # Estimate:
-    # Pass through rpy2 to R function
-    #   - ideally directly to {{MLCM}}
-    #   - thin wrapper may be necessary (?)
+    point_estimates = _estimate(parsed_trial_responses, modeltype, method, epsilon)
     # - re-reindex output scales
     ...
 

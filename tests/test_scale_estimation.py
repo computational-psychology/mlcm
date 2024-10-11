@@ -1,3 +1,9 @@
+import numpy as np
+import pandas as pd
+
+from mlcm import scale_estimation
+
+
 def test_integration(): ...
 
 
@@ -8,3 +14,35 @@ def test_wrangle_scales(): ...
 
 
 def test_model_comparison(): ...
+
+
+def test_estimate_add_tiny():
+    data = pd.read_csv('tiny_data.csv')
+    expected = np.array([[0, 0], [-7.795792, 0]])
+
+    # call estimation function which calls R in the background
+    scale_obj = scale_estimation._estimate(data, modeltype='add')
+
+    # returns rpy2 pointer to the R object, we extract the scale values
+    result = np.array(scale_obj.rx2('pscale'))
+
+    np.testing.assert_almost_equal(expected, result)
+
+
+def test_estimate_full_tiny():
+    data = pd.read_csv('tiny_data.csv')
+    expected = np.array([[0, 0], [-7.795965, -7.795741]])
+    
+    # call estimation function which calls R in the background
+    scale_obj = scale_estimation._estimate(data, modeltype='full')
+    
+    # returns rpy2 pointer to the R object, we extract the scale values
+    result = np.array(scale_obj.rx2('pscale'))
+
+    np.testing.assert_almost_equal(expected, result)
+    
+    
+    
+    
+if __name__=='__main__':
+    test_estimate_add_tiny()
