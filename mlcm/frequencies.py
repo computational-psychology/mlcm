@@ -108,4 +108,44 @@ def conjoint_choice_frequencies(trial_responses, **options):
     # "Unmirror"
 
     # Housekeeping: return dataframe
-    ...
+
+
+def response_choice(trials, choice, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
+    """Count choice frequency for given response choice in trial data
+
+    Parameters
+    ----------
+    trials : pandas.DataFrame
+        raw trials response data, with column "response" containing participant responses,
+        and one column per dimension x pair combination
+        e.g., "dim1_A", "dim2_A", "dim1_B", "dim2_B",
+    choice : Any
+        label in "response" column to determine choice frequency for
+    dim_names : tuple[str], optional
+        names for the stimulus dimensions, by default ("dim1", "dim2")
+    pair_names : tuple[str], optional
+        names for the stimulus pair members, by default ("A", "B")
+
+    Returns
+    -------
+    freqs : pandas.DataFrame
+        pivot table of conjoint choice frequencies,
+        where each row and each column is unique dimension-level combination (unique stimulus),
+        and thus each cell represents a unique stimuli pairing
+        (where order matters, i.e., ('A', 'B') != ('B', 'A') )
+        and the value each cell is the frequency of specified response being chosen
+    """
+    # Recode response such that choice := 1
+    recoded = trials.copy()
+    recoded["response"] = (recoded["response"] == choice).astype(int)
+
+    # Calculate frequencies for complete set
+    freqs = conjoint(trials=recoded, col="response", dim_names=dim_names, pair_names=pair_names)
+
+    # Housekeeping: return dataframe
+    freqs.index = freqs.index.reorder_levels(dim_names)
+    freqs.columns = freqs.columns.reorder_levels(dim_names)
+    freqs = freqs.sort_index(axis="index").sort_index(axis="columns")
+    freqs.index.name, freqs.columns.name = pair_names
+
+    return freqs

@@ -51,7 +51,33 @@ def test_conjoint():
 def test_frequencies(): ...
 
 
-def test_choice_frequencies(): ...
+def test_response_choice():
+    # Setup input trials
+    trials = pd.DataFrame(
+        {
+            "dim1_A": [1, 2],
+            "dim2_A": ["X", "Y"],
+            "dim1_B": [2, 1],
+            "dim2_B": ["Y", "Y"],
+            "response": ["A", "B"],
+        }
+    )
+
+    # Determine (conjoint) response choice frequencies for response "A"
+    freqs = frequencies.response_choice(trials, choice="A")
+
+    assert np.array_equal(
+        freqs.values,
+        np.array(
+            [
+                [np.nan, np.nan, np.nan, 1.0],
+                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 0.0, np.nan, np.nan],
+            ]
+        ),
+        equal_nan=True,
+    )
 
 
 def test_collapse():
