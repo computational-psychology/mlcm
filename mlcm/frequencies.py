@@ -60,36 +60,51 @@ def conjoint(trials, col, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
     return freqs
 
 
-def collapse(freqs):
+def collapse(freqs_row, freqs_col):
     """Collapse frequencies over symmetrical pairings
 
-    In most cases, we assume that stimulus ordering doesn't matter.
-    Then, e.g., for choice frequencies, ("stim_1", "stim_2") == ("stim_2", "stim_1"),
-    and we can sum the frequencies mirrored across the diagonal.
+    In the conjoint frequencies,
+    each row and each column is unique dimension-level combination (unique stimulus),
+    and thus each cell represents a unique stimuli pairing
+    (where order matters, i.e., ('A', 'B') != ('B', 'A') ).
+
+    In most cases, we assume that stimulus ordering doesn't matter, e.g., for choice frequencies.
+    We assume that response "B" to ("stim_1", "stim_2") == "A" to ("stim_2", "stim_1").
+    Then, we can sum these frequencies across equivalent choices,
+    i.e., over the diagonal in the conjoint frequencies.
     That way we're left with just the upper triangle in the conjoint frequencies.
 
     Parameters
     ----------
-    freqs : pandas.DataFrame
-        pivot table of conjoint frequencies,
-        where each row and each column is unique dimension-level combination (unique stimulus),
-        and thus each cell represents a unique stimuli pairing
-        (where order matters, i.e., ('A', 'B') != ('B', 'A') )
+    freqs_row : pandas.DataFrame
+        pivot table of conjoint frequencies of (choosing) stimulus defined by row
+    freqs_col : pandas.DataFrame
+        pivot table of conjoint frequencies of (choosing) stimulus defined by column
 
     Returns
     -------
     pandas.DataFrame
         only upper triangle of pivot table of conjoint frequencies,
-        containing sums of freqs across the diagonal
+        i.e., freqncies of (choosing) stimulus defined by column, regardless of ordering
     """
-    # Sum into upper triangle
-    freqs_upper = np.tril(freqs.fillna(0)).T + np.triu(freqs.fillna(0)).astype(float)
+    # Combine over choices
+    freqs = np.stack([freqs_row.T, freqs_col])  # transposing one, makes corresponding to other
+    freqs = np.nansum(freqs, axis=0)  # sum over choices, treating NaNs as 0s
+
+    # Since frequencies are now symmetrical, collapse over diagnoal
+    # freqs_upper = np.tril(freqs, k=-1).T + np.triu(freqs)
+    freqs_upper = np.triu(freqs)
 
     # Set lower triangle to NaN
-    freqs_upper[np.tril_indices_from(freqs_upper)] = np.nan
+    freqs_upper[np.tril_indices_from(freqs_upper, k=-1)] = np.nan
+
+    # Mask all conjoints that were not actually in freqs, as NaNs
+    mask = np.isnan(freqs_row.T) & np.isnan(freqs_col)
+    mask = np.tril(mask).T & np.triu(mask)
+    freqs_upper[mask] = np.nan
 
     # Housekeeping
-    freqs_upper = pd.DataFrame(freqs_upper, columns=freqs.columns, index=freqs.index)
+    freqs_upper = pd.DataFrame(freqs_upper, columns=freqs_col.index, index=freqs_col.index)
 
     return freqs_upper
 
@@ -137,12 +152,9 @@ def conjoint_choice(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
             response_choice(trials, choice=name, dim_names=dim_names, pair_names=pair_names)
         )
 
-    # Sum over choices (for mirrored stimuli)
-    freqs = freqs[0].fillna(0).T + freqs[1]
-
     # Collapse over symmetrical pairs
     # Don't care about ordering of stimuli (i.e., mirroring) so sum
-    freqs_upper = collapse(freqs)
+    freqs_upper = collapse(*freqs)
 
     # Housekeeping: return dataframe
     freqs_upper.index.name, freqs_upper.columns.name = ("A", "B")

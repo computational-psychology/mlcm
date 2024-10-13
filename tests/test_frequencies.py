@@ -52,11 +52,11 @@ def test_conjoint_choice():
     # Setup input trials
     trials = pd.DataFrame(
         {
-            "dim1_A": [1, 2],
-            "dim2_A": ["X", "Y"],
-            "dim1_B": [2, 1],
-            "dim2_B": ["Y", "X"],
-            "response": ["A", "B"],
+            "dim1_A": [1, 2, 1],
+            "dim2_A": ["X", "Y", "X"],
+            "dim1_B": [2, 1, 1],
+            "dim2_B": ["Y", "X", "X"],
+            "response": ["A", "B", "B"],
         }
     )
 
@@ -67,9 +67,9 @@ def test_conjoint_choice():
         freqs.values,
         np.array(
             [
-                [np.nan, 0.0, 0.0, 2.0],
-                [np.nan, np.nan, 0.0, 0.0],
-                [np.nan, np.nan, np.nan, 0.0],
+                [1.0, np.nan, np.nan, 0.0],
+                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan],
             ]
         ),
@@ -107,17 +107,33 @@ def test_response_choice():
 
 
 def test_collapse():
-    freqs = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    freqs_row = pd.DataFrame(
+        [
+            [1.0, np.nan, np.nan, 1.0],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, 2.0, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+        ]
+    )
+    freqs_col = pd.DataFrame(
+        [
+            [np.nan, np.nan, np.nan, np.nan],
+            [0.0, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [1.0, np.nan, np.nan, np.nan],
+        ]
+    )
 
-    freqs_upper = frequencies.collapse(freqs)
+    freqs_upper = frequencies.collapse(freqs_row, freqs_col)
 
     np.array_equal(
         freqs_upper.values,
         np.array(
             [
-                [np.nan, 6, 10],
-                [np.nan, np.nan, 14],
-                [np.nan, np.nan, np.nan],
+                [1.0, 0.0, np.nan, 2.0],
+                [np.nan, np.nan, 2.0, np.nan],
+                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan],
             ]
         ),
         equal_nan=True,
