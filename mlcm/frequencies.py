@@ -94,24 +94,64 @@ def collapse(freqs):
     return freqs_upper
 
 
-def conjoint_choice_frequencies(trial_responses, **options):
+def conjoint_choice(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
+    """Conjoint choice frequencies for all unique stimulus pairings
+
+    Each stimulus in the pairing e.g. ("A", "B")
+    is defined by its levels for that stimulus, e.g., ("dim1_A", "dim2_A").
+    For each of the possible unique pairings of unique stimuli,
+    determine the frequency of one stimulus being chosen over the other.
+
+    Assumes that stimulus ordering doesn't matter.
+    Then, e.g., for choice frequencies, ("stim_A", "stim_B") == ("stim_A", "stim_B"),
+    and we can sum the frequencies mirrored across the diagonal.
+    That way we're left with just the upper triangle in the conjoint frequencies.
+
+    Parameters
+    ----------
+    trials : pandas.DataFrame
+        raw trials response data, with column "response" containing participant responses,
+        and one column per dimension x pair combination
+        e.g., "dim1_A", "dim2_A", "dim1_B", "dim2_B",
+    dim_names : tuple[str], optional
+        names for the stimulus dimensions, by default ("dim1", "dim2")
+    pair_names : tuple[str], optional
+        names for the stimulus pair members, by default ("A", "B")
+
+    Returns
+    -------
+    pandas.DataFrame
+        upper triangle of pivot table of conjoint frequencies,
+        where each row and each column is unique dimension-level combination (unique stimulus),
+        and thus each cell represents a unique stimuli pairing
+        (where order doesn't matter, i.e., ('A', 'B') == ('B', 'A') )
+        and the value each cell is the frequency of the column-defined stimulus being chosen.
+    """
     # Check / set options
 
     # Loop over each possible choice
+    # For each choice, calculate frequencies
+    freqs = []
+    for name in pair_names:
+        freqs.append(
+            response_choice(trials, choice=name, dim_names=dim_names, pair_names=pair_names)
+        )
 
-    # Recode responses to that choice := 1
+    # Sum over choices (for mirrored stimuli)
+    freqs = freqs[0].fillna(0).T + freqs[1]
 
-    # Pivot conjoint frequencies
-
-    # Sum over choices
-
-    # "Unmirror"
+    # Collapse over symmetrical pairs
+    # Don't care about ordering of stimuli (i.e., mirroring) so sum
+    freqs_upper = collapse(freqs)
 
     # Housekeeping: return dataframe
+    freqs_upper.index.name, freqs_upper.columns.name = ("A", "B")
+
+    return freqs_upper
 
 
 def response_choice(trials, choice, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
-    """Count choice frequency for given response choice in trial data
+    """Choice frequency for specified response option in trial data
 
     Parameters
     ----------
