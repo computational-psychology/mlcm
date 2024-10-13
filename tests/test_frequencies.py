@@ -54,4 +54,19 @@ def test_frequencies(): ...
 def test_choice_frequencies(): ...
 
 
-def test_collapse_frequencies(): ...
+def test_collapse():
+    freqs = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+    freqs_upper = frequencies.collapse(freqs)
+
+    np.array_equal(
+        freqs_upper.values,
+        np.array(
+            [
+                [np.nan, 6, 10],
+                [np.nan, np.nan, 14],
+                [np.nan, np.nan, np.nan],
+            ]
+        ),
+        equal_nan=True,
+    )
