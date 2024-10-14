@@ -35,10 +35,6 @@ def _estimate(parsed_trial_responses, modeltype='add', method='glm.fit', epsilon
     Rpy2 object with output from MLCM package
 
     """
-    # Pass through rpy2 to R function
-    #   - ideally directly to {{MLCM}}
-    #   - thin wrapper may be necessary (?)
-
     r_mlcm = robjects.r['mlcm']
     r_as_mlcm_df = robjects.r['as.mlcm.df']
 
