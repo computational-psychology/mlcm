@@ -44,9 +44,7 @@ jobs:
           pip install pytest
 
       - name: Install mlcm to be tested
-        run: |
-          pip install .
+        run: pip install .
 
       - name: Run tests for ${{ matrix.python_version }} through nox
-        run: |
-          pytest -vv
+        run: pytest -vv
