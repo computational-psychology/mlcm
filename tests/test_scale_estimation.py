@@ -3,6 +3,16 @@ import pandas as pd
 
 from mlcm import scale_estimation
 
+tiny_data = np.array([[1,1,1,1,2],
+					  [1,1,1,2,1],
+					  [1,1,1,2,2],
+					  [0,1,2,2,1],
+					  [0,1,2,2,2],
+					  [1,2,1,2,2]])
+					  				  
+tiny_data_df = pd.DataFrame(tiny_data, 
+							columns = ['Resp', 'A1','A2','B1','B2'])
+
 
 def test_integration(): ...
 
@@ -17,7 +27,7 @@ def test_model_comparison(): ...
 
 
 def test_estimate_add_tiny():
-    data = pd.read_csv('tiny_data.csv')
+    data = tiny_data_df 
     expected = np.array([[0, 0], [-7.795792, 0]])
 
     # call estimation function which calls R in the background
@@ -30,7 +40,7 @@ def test_estimate_add_tiny():
 
 
 def test_estimate_full_tiny():
-    data = pd.read_csv('tiny_data.csv')
+    data = tiny_data_df 
     expected = np.array([[0, 0], [-7.795965, -7.795741]])
     
     # call estimation function which calls R in the background
@@ -41,8 +51,4 @@ def test_estimate_full_tiny():
 
     np.testing.assert_almost_equal(expected, result)
     
-    
-    
-    
-if __name__=='__main__':
-    test_estimate_add_tiny()
+ 
