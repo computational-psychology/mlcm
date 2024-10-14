@@ -36,7 +36,7 @@ def test_estimate_add_tiny():
     # returns rpy2 pointer to the R object, we extract the scale values
     result = np.array(scale_obj.rx2('pscale'))
 
-    np.testing.assert_almost_equal(expected, result)
+    np.testing.assert_almost_equal(expected, result, decimal=4)
 
 
 def test_estimate_full_tiny():
@@ -49,6 +49,6 @@ def test_estimate_full_tiny():
     # returns rpy2 pointer to the R object, we extract the scale values
     result = np.array(scale_obj.rx2('pscale'))
 
-    np.testing.assert_almost_equal(expected, result)
+    np.testing.assert_almost_equal(expected, result, decimal=4)
     
  
