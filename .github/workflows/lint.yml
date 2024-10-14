@@ -1,0 +1,31 @@
+name: Lint & format
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v4
+          with:
+            python-version: "3.13"
+        - name: flake8 Lint Errors
+          uses: py-actions/flake8@v2
+          with:
+            args: --count --select=E9,F63,F7,F82 --show-source --statistics
+            # stop the build if there are Python syntax errors or undefined names
+            #    E9: Runtime errors (syntax, indentation, io)
+            #    F63: Wrong use of operators and always-true assertion tests
+            #    F7: Wrong position of statements (break, continue, return, ...)
+            #    F82: Undefined (variable) name
+        - name: flake8 Lint Warnings
+          uses: py-actions/flake8@v2
+          with:
+            args: --count --exit-zero --statistics --show-source
+            # print warnings if other style errors are found.
+            #    see .flake8 config file for selected/ignored rules.
+            #    warnings can be found in the action logs
