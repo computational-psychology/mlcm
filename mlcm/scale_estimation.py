@@ -13,14 +13,14 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
 
     Parameters
     ----------
-    parsed_trial_responses : pandas Dataframe
-        (n x 5) DataFrame with experimental data containing n trials.
-        First column has observeris repsonses coded with 0 or 1,
-        Second column contains the stimuli index for dimension 1, stimulus 1,
-        Third column contains the stimuli index for dimension 1, stimulus 2,
-        Fourth column contains the stimuli index for dimension 2, stimulus 1,
-        Fifth column contains the stimuli index for dimension 2, stimulus 2
-        (This format is the same as in the MLCM R package.)
+    parsed_trial_responses : pandas.Dataframe
+        (N x 5) DataFrame with experimental data containing N trials, which columns:
+        - 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
+        - '[dimA_]_1': stimuli index for first stimulus dimension, e.g., `dimA_`, stimulus 1,
+        - '[dimA_]_2': stimuli index for first stimulus dimension, e.g., `dimA_`, stimulus 2,
+        - '[dimB_]_1': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 1,
+        - '[dimB_]_2': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 2.
+        This format is required by the {{MLCM}} R package.)
     modeltype : str, optional
         Type of MLCM model to be fit from set ['indep', 'add' or 'full'].
         The default is 'add'.

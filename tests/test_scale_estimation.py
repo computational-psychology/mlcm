@@ -14,7 +14,7 @@ tiny_data = np.array(
     ]
 )
 
-tiny_data_df = pd.DataFrame(tiny_data, columns=["Resp", "A1", "A2", "B1", "B2"])
+tiny_data_df = pd.DataFrame(tiny_data, columns=["Resp", "dimA_1", "dimA_2", "dimB_1", "dimB_2"])
 
 
 def test_integration(): ...
