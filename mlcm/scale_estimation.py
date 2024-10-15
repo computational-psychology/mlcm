@@ -77,7 +77,7 @@ def wrangle_responses(): ...
 def wrangle_scales(): ...
 
 
-def scale_estimation(trial_responses, **options):
+def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-4, **options):
     # Check / set options
     ...
 
@@ -107,7 +107,9 @@ def scale_estimation(trial_responses, **options):
     ...
 
     # Estimate:
-    r_scale_obj = _estimate(parsed_trial_responses, options['modeltype'], options['method'], options['epsilon'])
+    r_scale_obj = _estimate(
+        parsed_trial_responses, modeltype=modeltype, method=method, epsilon=epsilon
+    )
     # - re-reindex output scales
     point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
