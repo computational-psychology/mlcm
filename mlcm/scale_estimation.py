@@ -8,7 +8,12 @@ importr("MLCM")
 
 
 def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon=1e-4):
-    """Run MLCM in R to get the point estimates for the scale.
+    """Fit point estimate for the scales, using the {{MLCM}} R package.
+
+    Uses rpy2 to convert the input data frame to an R dataframe,
+    and then runs the MLCM::mlcm(...) function on that data.
+
+    Thus, requires the `rpy2` Python package, R, and the {{MLCM}} R package installed.
 
 
     Parameters
