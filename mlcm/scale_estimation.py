@@ -1,14 +1,14 @@
 # imports
 import numpy as np
 import rpy2.robjects as robjects
-from rpy2.robjects.packages import importr
 from rpy2.robjects import pandas2ri
+from rpy2.robjects.packages import importr
 
-importr('MLCM')
+importr("MLCM")
 
 
-def _estimate(parsed_trial_responses, modeltype='add', method='glm.fit', epsilon=1e-4):
-    """ Run MLCM in R to get the point estimates for the scale.
+def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon=1e-4):
+    """Run MLCM in R to get the point estimates for the scale.
 
 
     Parameters
@@ -35,8 +35,8 @@ def _estimate(parsed_trial_responses, modeltype='add', method='glm.fit', epsilon
     Rpy2 object with output from MLCM package
 
     """
-    r_mlcm = robjects.r['mlcm']
-    r_as_mlcm_df = robjects.r['as.mlcm.df']
+    r_mlcm = robjects.r["mlcm"]
+    r_as_mlcm_df = robjects.r["as.mlcm.df"]
 
     # converts pandas DataFrame to R DataFrame
     with (robjects.default_converter + pandas2ri.converter).context():
@@ -109,7 +109,7 @@ def scale_estimation(trial_responses, **options):
     # Estimate:
     r_scale_obj = _estimate(parsed_trial_responses, options['modeltype'], options['method'], options['epsilon'])
     # - re-reindex output scales
-    point_estimate = np.array(r_scale_obj.rx2('pscale'))
+    point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
     # OPTIONALLY: Confidence Intervals
     # - bootstrap
@@ -125,6 +125,6 @@ def scale_estimation(trial_responses, **options):
     # - options
     #
     result = {}
-    result['point_estimate'] = point_estimate
+    result["point_estimate"] = point_estimate
 
     return result
