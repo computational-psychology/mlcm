@@ -21,18 +21,19 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
         - '[dimB_]_1': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 1,
         - '[dimB_]_2': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 2.
         This format is required by the {{MLCM}} R package.)
-    modeltype : str, optional
-        Type of MLCM model to be fit from set ['indep', 'add' or 'full'].
-        The default is 'add'.
-    method : str, optional
-        Fitting routine. Options are ['glm.fit', 'brglm.fit']. The default is
-        'glm.fit'.
+    modeltype : ['add', 'indep', 'full']
+        whether to fit an `add`itive, `indep`endent, or `full` model,
+        by default 'add'.
+    method : ['glm.fit', 'brglm.fit']
+        whether to use a regular `glm` or `b`ias-`r`educed glm fitting routine,
+        by default 'glm.fit'.
     epsilon : float, optional
-        Convergence tolerance. The default is 1e-4.
+        convergence tolerance, by default 1e-4.
 
     Returns
     -------
-    Rpy2 object with output from MLCM package
+    rpy2.robject
+        output from {{MLCM}} R package
 
     """
     r_mlcm = robjects.r["mlcm"]
