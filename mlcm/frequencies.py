@@ -4,7 +4,7 @@ import pandas as pd
 from . import utils
 
 
-def conjoint(trials, col, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
+def conjoint(trials, col, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     """Conjoint proportion/frequencies/total per unique stimuli pairing, for given column
 
     Creates a pivot table, where for the specified `col`umn, the aggregated total
@@ -19,11 +19,11 @@ def conjoint(trials, col, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
     ----------
     trials : pandas.DataFrame
         raw trials response data, with one column per dimension x pair combination
-        e.g., "dim1_A", "dim2_A", "dim1_B", "dim2_B"
+        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B"
     col : str
         name of column (in trials) to calculate conjoint total for
     dim_names : tuple[str], optional
-        names for the stimulus dimensions, by default ("dim1", "dim2")
+        names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
         names for the stimulus pair members, by default ("A", "B")
 
@@ -109,11 +109,11 @@ def collapse(freqs_row, freqs_col):
     return freqs_upper
 
 
-def conjoint_choice(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
+def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     """Conjoint choice frequencies for all unique stimulus pairings
 
     Each stimulus in the pairing e.g. ("A", "B")
-    is defined by its levels for that stimulus, e.g., ("dim1_A", "dim2_A").
+    is defined by its levels for that stimulus, e.g., ("dimX_A", "dimY_A").
     For each of the possible unique pairings of unique stimuli,
     determine the frequency of one stimulus being chosen over the other.
 
@@ -127,9 +127,9 @@ def conjoint_choice(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
     trials : pandas.DataFrame
         raw trials response data, with column "response" containing participant responses,
         and one column per dimension x pair combination
-        e.g., "dim1_A", "dim2_A", "dim1_B", "dim2_B",
+        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B",
     dim_names : tuple[str], optional
-        names for the stimulus dimensions, by default ("dim1", "dim2")
+        names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
         names for the stimulus pair members, by default ("A", "B")
 
@@ -162,7 +162,7 @@ def conjoint_choice(trials, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
     return freqs_upper
 
 
-def response_choice(trials, choice, dim_names=("dim1", "dim2"), pair_names=("A", "B")):
+def response_choice(trials, choice, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     """Choice frequency for specified response option in trial data
 
     Parameters
@@ -170,11 +170,11 @@ def response_choice(trials, choice, dim_names=("dim1", "dim2"), pair_names=("A",
     trials : pandas.DataFrame
         raw trials response data, with column "response" containing participant responses,
         and one column per dimension x pair combination
-        e.g., "dim1_A", "dim2_A", "dim1_B", "dim2_B",
+        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B",
     choice : Any
         label in "response" column to determine choice frequency for
     dim_names : tuple[str], optional
-        names for the stimulus dimensions, by default ("dim1", "dim2")
+        names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
         names for the stimulus pair members, by default ("A", "B")
 

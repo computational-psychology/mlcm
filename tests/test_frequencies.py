@@ -7,10 +7,10 @@ from mlcm import frequencies
 def test_conjoint():
     trials = pd.DataFrame(
         {
-            "dim1_A": [1, 2, 3],
-            "dim2_A": ["X", "Y", "X"],
-            "dim1_B": [2, 3, 1],
-            "dim2_B": ["Y", "Y", "X"],
+            "dimX_A": [1, 2, 3],
+            "dimY_A": ["X", "Y", "X"],
+            "dimX_B": [2, 3, 1],
+            "dimY_B": ["Y", "Y", "X"],
             "repeats": ["3", "2", "4"],
         }
     )
@@ -18,7 +18,7 @@ def test_conjoint():
     freqs = frequencies.conjoint(trials, col="repeats")
 
     assert [freqs.index.name, freqs.columns.name] == ["A", "B"]
-    assert freqs.index.names == freqs.columns.names == ["dim2", "dim1"]
+    assert freqs.index.names == freqs.columns.names == ["dimY", "dimX"]
     assert (
         list(freqs.columns)
         == list(freqs.index)
@@ -51,10 +51,10 @@ def test_conjoint_choice():
     # Setup input trials
     trials = pd.DataFrame(
         {
-            "dim1_A": [1, 2, 1],
-            "dim2_A": ["X", "Y", "X"],
-            "dim1_B": [2, 1, 1],
-            "dim2_B": ["Y", "X", "X"],
+            "dimX_A": [1, 2, 1],
+            "dimY_A": ["X", "Y", "X"],
+            "dimX_B": [2, 1, 1],
+            "dimY_B": ["Y", "X", "X"],
             "response": ["A", "B", "B"],
         }
     )
@@ -79,10 +79,10 @@ def test_response_choice():
     # Setup input trials
     trials = pd.DataFrame(
         {
-            "dim1_A": [1, 2],
-            "dim2_A": ["X", "Y"],
-            "dim1_B": [2, 1],
-            "dim2_B": ["Y", "Y"],
+            "dimX_A": [1, 2],
+            "dimY_A": ["X", "Y"],
+            "dimX_B": [2, 1],
+            "dimY_B": ["Y", "Y"],
             "response": ["A", "B"],
         }
     )
