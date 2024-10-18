@@ -32,7 +32,7 @@ def test_conjoint():
         ]
     )
 
-    assert np.array_equal(
+    np.testing.assert_array_equal(
         freqs.values.astype(float),
         np.array(
             [
@@ -44,7 +44,6 @@ def test_conjoint():
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
             ],
         ),
-        equal_nan=True,
     )
 
 
@@ -63,7 +62,7 @@ def test_conjoint_choice():
     # Determine (conjoint) response choice frequencies
     freqs = frequencies.conjoint_choice(trials)
 
-    assert np.array_equal(
+    np.testing.assert_array_equal(
         freqs.values,
         np.array(
             [
@@ -73,7 +72,6 @@ def test_conjoint_choice():
                 [np.nan, np.nan, np.nan, np.nan],
             ]
         ),
-        equal_nan=True,
     )
 
 
@@ -92,7 +90,7 @@ def test_response_choice():
     # Determine (conjoint) response choice frequencies for response "A"
     freqs = frequencies.response_choice(trials, choice="A")
 
-    assert np.array_equal(
+    np.testing.assert_array_equal(
         freqs.values,
         np.array(
             [
@@ -102,7 +100,6 @@ def test_response_choice():
                 [np.nan, 0.0, np.nan, np.nan],
             ]
         ),
-        equal_nan=True,
     )
 
 
