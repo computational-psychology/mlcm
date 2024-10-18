@@ -189,7 +189,7 @@ def response_choice(trials, choice, dim_names=("dim1", "dim2"), pair_names=("A",
     """
     # Recode response such that choice := 1
     recoded = trials.copy()
-    recoded["response"] = (recoded["response"] == choice).astype(int)
+    recoded["response"] = (recoded["response"].str.lower() == choice.lower()).astype(int)
 
     # Calculate frequencies for complete set
     freqs = conjoint(trials=recoded, col="response", dim_names=dim_names, pair_names=pair_names)
