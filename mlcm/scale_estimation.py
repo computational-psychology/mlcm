@@ -15,17 +15,19 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
 
     Thus, requires the `rpy2` Python package, R, and the {{MLCM}} R package installed.
 
+    Input data needs to be in the correct format required by the {{MLCM}} R package:
+
+    | Resp | dimX_1 | dimX_2 | dimY_1 | dimY_2 |
+    |------|--------|--------|--------|--------|
+    |  0   |   2    |    1   |    1   |    1   |
 
     Parameters
     ----------
     parsed_trial_responses : pandas.Dataframe
-        (N x 5) DataFrame with experimental data containing N trials, which columns:
-        - 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
-        - '[dimA_]_1': stimuli index for first stimulus dimension, e.g., `dimA_`, stimulus 1,
-        - '[dimA_]_2': stimuli index for first stimulus dimension, e.g., `dimA_`, stimulus 2,
-        - '[dimB_]_1': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 1,
-        - '[dimB_]_2': stimuli index for second stimulus dimension, e.g., `dimB_`, stimulus 2.
-        This format is required by the {{MLCM}} R package.)
+        (N x 5) DataFrame with experimental data containing N trials,
+        with column 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
+        and pairs of columns `[dimname]_1` and `[dimname]_2` for each stimulus dimension,
+        indicating the index along that stimulus dimension for the two paired stimuli.
     modeltype : ['add', 'indep', 'full']
         whether to fit an `add`itive, `indep`endent, or `full` model,
         by default 'add'.
