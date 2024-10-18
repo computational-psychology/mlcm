@@ -1,18 +1,18 @@
 import pandas as pd
 
 
-def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
+def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("left", "right")):
     """Extract unique stimulus levels for each dimension, from trial data
 
     Parameters
     ----------
     trials : pandas.DataFrame
         raw trials response data, with one column per dimension x pair combination
-        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B"
+        e.g., "dimX_left", "dimY_left", "dimX_right", "dimY_right"
     dim_names : tuple[str], optional
         names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
-        names for the stimulus pair members, by default ("A", "B")
+        names for the stimulus pair members, by default ("left", "right")
 
     Returns
     -------

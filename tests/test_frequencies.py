@@ -7,17 +7,17 @@ from mlcm import frequencies
 def test_conjoint():
     trials = pd.DataFrame(
         {
-            "dimX_A": [1, 2, 3],
-            "dimY_A": ["X", "Y", "X"],
-            "dimX_B": [2, 3, 1],
-            "dimY_B": ["Y", "Y", "X"],
+            "dimX_left": [1, 2, 3],
+            "dimY_left": ["X", "Y", "X"],
+            "dimX_right": [2, 3, 1],
+            "dimY_right": ["Y", "Y", "X"],
             "repeats": ["3", "2", "4"],
         }
     )
 
     freqs = frequencies.conjoint(trials, col="repeats")
 
-    assert [freqs.index.name, freqs.columns.name] == ["A", "B"]
+    assert [freqs.index.name, freqs.columns.name] == ["left", "right"]
     assert freqs.index.names == freqs.columns.names == ["dimY", "dimX"]
     assert (
         list(freqs.columns)
@@ -51,11 +51,11 @@ def test_conjoint_choice():
     # Setup input trials
     trials = pd.DataFrame(
         {
-            "dimX_A": [1, 2, 1],
-            "dimY_A": ["X", "Y", "X"],
-            "dimX_B": [2, 1, 1],
-            "dimY_B": ["Y", "X", "X"],
-            "response": ["A", "B", "B"],
+            "dimX_left": [1, 2, 1],
+            "dimY_left": ["X", "Y", "X"],
+            "dimX_right": [2, 1, 1],
+            "dimY_right": ["Y", "X", "X"],
+            "response": ["left", "right", "right"],
         }
     )
 
@@ -79,16 +79,16 @@ def test_response_choice():
     # Setup input trials
     trials = pd.DataFrame(
         {
-            "dimX_A": [1, 2],
-            "dimY_A": ["X", "Y"],
-            "dimX_B": [2, 1],
-            "dimY_B": ["Y", "Y"],
-            "response": ["A", "B"],
+            "dimX_left": [1, 2],
+            "dimY_left": ["X", "Y"],
+            "dimX_right": [2, 1],
+            "dimY_right": ["Y", "Y"],
+            "response": ["left", "right"],
         }
     )
 
-    # Determine (conjoint) response choice frequencies for response "A"
-    freqs = frequencies.response_choice(trials, choice="A")
+    # Determine (conjoint) response choice frequencies for response "left"
+    freqs = frequencies.response_choice(trials, choice="left")
 
     np.testing.assert_array_equal(
         freqs.values,

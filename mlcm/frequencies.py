@@ -4,7 +4,7 @@ import pandas as pd
 from . import utils
 
 
-def conjoint(trials, col, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
+def conjoint(trials, col, dim_names=("dimX", "dimY"), pair_names=("left", "right")):
     """Conjoint proportion/frequencies/total per unique stimuli pairing, for given column
 
     Creates a pivot table, where for the specified `col`umn, the aggregated total
@@ -19,13 +19,13 @@ def conjoint(trials, col, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     ----------
     trials : pandas.DataFrame
         raw trials response data, with one column per dimension x pair combination
-        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B"
+        e.g., "dimX_left", "dimY_left", "dimX_right", "dimY_right"
     col : str
         name of column (in trials) to calculate conjoint total for
     dim_names : tuple[str], optional
         names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
-        names for the stimulus pair members, by default ("A", "B")
+        names for the stimulus pair members, by default ("left", "right")
 
     Returns
     -------
@@ -69,7 +69,7 @@ def collapse(freqs_row, freqs_col):
     (where order matters, i.e., ('A', 'B') != ('B', 'A') ).
 
     In most cases, we assume that stimulus ordering doesn't matter, e.g., for choice frequencies.
-    We assume that response "B" to ("stim_1", "stim_2") == "A" to ("stim_2", "stim_1").
+    We assume that response "right" to ("stim_1", "stim_2") == "left" to ("stim_2", "stim_1").
     Then, we can sum these frequencies across equivalent choices,
     i.e., over the diagonal in the conjoint frequencies.
     That way we're left with just the upper triangle in the conjoint frequencies.
@@ -109,16 +109,16 @@ def collapse(freqs_row, freqs_col):
     return freqs_upper
 
 
-def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
+def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("left", "right")):
     """Conjoint choice frequencies for all unique stimulus pairings
 
-    Each stimulus in the pairing e.g. ("A", "B")
-    is defined by its levels for that stimulus, e.g., ("dimX_A", "dimY_A").
+    Each stimulus in the pairing e.g. ("left", "right")
+    is defined by its levels for that stimulus, e.g., ("dimX_left", "dimY_left").
     For each of the possible unique pairings of unique stimuli,
     determine the frequency of one stimulus being chosen over the other.
 
     Assumes that stimulus ordering doesn't matter.
-    Then, e.g., for choice frequencies, ("stim_A", "stim_B") == ("stim_A", "stim_B"),
+    Then, e.g., for choice frequencies, ("stim_left", "stim_right") == ("stim_left", "stim_right"),
     and we can sum the frequencies mirrored across the diagonal.
     That way we're left with just the upper triangle in the conjoint frequencies.
 
@@ -127,11 +127,11 @@ def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     trials : pandas.DataFrame
         raw trials response data, with column "response" containing participant responses,
         and one column per dimension x pair combination
-        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B",
+        e.g., "dimX_left", "dimY_left", "dimX_right", "dimY_right",
     dim_names : tuple[str], optional
         names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
-        names for the stimulus pair members, by default ("A", "B")
+        names for the stimulus pair members, by default ("left", "right")
 
     Returns
     -------
@@ -139,7 +139,7 @@ def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
         upper triangle of pivot table of conjoint frequencies,
         where each row and each column is unique dimension-level combination (unique stimulus),
         and thus each cell represents a unique stimuli pairing
-        (where order doesn't matter, i.e., ('A', 'B') == ('B', 'A') )
+        (where order doesn't matter, i.e., ('left', 'right') == ('right', 'left') )
         and the value each cell is the frequency of the column-defined stimulus being chosen.
     """
     # Check / set options
@@ -157,12 +157,12 @@ def conjoint_choice(trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
     freqs_upper = collapse(*freqs)
 
     # Housekeeping: return dataframe
-    freqs_upper.index.name, freqs_upper.columns.name = ("A", "B")
+    freqs_upper.index.name, freqs_upper.columns.name = ("left", "right")
 
     return freqs_upper
 
 
-def response_choice(trials, choice, dim_names=("dimX", "dimY"), pair_names=("A", "B")):
+def response_choice(trials, choice, dim_names=("dimX", "dimY"), pair_names=("left", "right")):
     """Choice frequency for specified response option in trial data
 
     Parameters
@@ -170,13 +170,13 @@ def response_choice(trials, choice, dim_names=("dimX", "dimY"), pair_names=("A",
     trials : pandas.DataFrame
         raw trials response data, with column "response" containing participant responses,
         and one column per dimension x pair combination
-        e.g., "dimX_A", "dimY_A", "dimX_B", "dimY_B",
+        e.g., "dimX_left", "dimY_left", "dimX_right", "dimY_right",
     choice : Any
         label in "response" column to determine choice frequency for
     dim_names : tuple[str], optional
         names for the stimulus dimensions, by default ("dimX", "dimY")
     pair_names : tuple[str], optional
-        names for the stimulus pair members, by default ("A", "B")
+        names for the stimulus pair members, by default ("left", "right")
 
     Returns
     -------
@@ -184,7 +184,7 @@ def response_choice(trials, choice, dim_names=("dimX", "dimY"), pair_names=("A",
         pivot table of conjoint choice frequencies,
         where each row and each column is unique dimension-level combination (unique stimulus),
         and thus each cell represents a unique stimuli pairing
-        (where order matters, i.e., ('A', 'B') != ('B', 'A') )
+        (where order matters, i.e., ('left', 'right') != ('right', 'left') )
         and the value each cell is the frequency of specified response being chosen
     """
     # Recode response such that choice := 1

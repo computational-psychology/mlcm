@@ -5,16 +5,16 @@ from mlcm import utils
 
 def test_extract_stim_levels():
     trials = {
-        "dimX_A": [1, 2, 3],
-        "dimY_A": ["X", "Y", "X"],
-        "dimX_B": [2, 3, 1],
-        "dimY_B": ["Y", "Y", "X"],
-        "response": ["A", "B", "A"],
+        "dimX_left": [1, 2, 3],
+        "dimY_left": ["X", "Y", "X"],
+        "dimX_right": [2, 3, 1],
+        "dimY_right": ["Y", "Y", "X"],
+        "response": ["left", "right", "left"],
     }
     trials = pd.DataFrame(trials)
 
     stim_levels = utils.extract_stim_levels(
-        trials, dim_names=("dimX", "dimY"), pair_names=("A", "B")
+        trials, dim_names=("dimX", "dimY"), pair_names=("left", "right")
     )
 
     assert tuple(stim_levels.keys()) == ("dimX", "dimY")
