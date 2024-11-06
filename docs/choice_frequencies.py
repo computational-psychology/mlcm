@@ -13,6 +13,8 @@
 
 # %% [markdown]
 # # (Conjoint) choice frequencies
+#
+# This notebook shows how to obtain the conjoint choice frequencies from data obtained in an MLCM experiment.
 
 # %%
 import pandas as pd
@@ -37,8 +39,8 @@ pair_names = ("left", "right")
 # %% [markdown]
 # The two stimuli are Gabor patches.
 # They can physically differ along two dimensions:
-# - `spatial freq`uency
-# - `contrast`
+# - spatial frequency (column `spatial freq`)
+# - contrast (column `contrast`)
 
 # %%
 dim_names = ("spatial_freq", "contrast")
@@ -61,9 +63,9 @@ stim_levels
 utils.dimension_combinations(stim_levels)
 
 # %% [markdown]
-# All possible pairwise combinations of these unique stimuli were presented,
+# ### All possible pairwise combinations of these unique stimuli were presented,
 # except for pairs of physically identical (contrast _and_ spatial frequency) stimuli.
-# Each pairwise combination (trial) was also repeated 10 times.
+# Each pairwise combination (trial) was also repeated $N_{r} = 10 $ times.
 
 # %%
 nrepeats = 10
@@ -105,17 +107,20 @@ trial_data.query(
 
 # %% [markdown]
 # If we add up all the times that the participant chose a particular stimulus,
-# we get the _choice frequency_: the amount
-# the amount of times the participant chose one stimulus over the other.
+# we get the _choice frequency_ $f$: the amount of times the participant chose one stimulus over the other for a particular stimulus combination.
+# The frequency of choosing `left` for the stimulus pair $(L, R)$ is
+# $$ f(L| L, R) $$
 #
-# $$ F(L | L, R) $$
+# and the frequency of choosing 'right' for the same stimuli pair is
 #
-# In this case, the choice frequency for choosing `"left"` was `5`,
+# $$ f(R| L, R) $$
+#
+# In the case above, the choice frequency for choosing `"left"` was `5`,
 # (and thus the complementary frequency of choosing `"right"` was `0`)
 #
 # $$\begin{align}
-# F(L | L, R) &= 5 \\
-# F(R | L, R) &= 5 - F(L | L, R) = 0
+# f(L | L, R) &= 5 \\
+# f(R | L, R) &= 5 - f(L | L, R) = 0
 # \end{align}$$
 #
 #
@@ -127,7 +132,7 @@ trial_data.query(
 # Rather than going through each conjoint combination separately,
 # we can construct a pivot table of these conjoint choice frequencies.
 #
-# To do this, we have to decided which choice to count frequency for,
+# To do this, we have to decide which observer's response to count frequency for,
 # e.g., `"left"`
 
 # %%
@@ -138,10 +143,10 @@ freqs_left
 
 # %% [markdown]
 # Here, each cell contains a conjoint choice frequency.
-# Each row defines the `"left"` stimulus (its `spatial_freq`uency and `contrast`),
-# and each column defines the `"right"` stimulus similarly.
+# Each **row** defines the `"left"` stimulus (its `spatial_freq`uency and `contrast`),
+# and each **column** defines the `"right"` stimulus similarly.
 #
-# Any paired combination that was never shown, gets choice frequency `NaN`.
+# Any paired combination that was never shown gets choice frequency `NaN`.
 
 # %% [markdown]
 # We can focus on a specific spatial frequency, e.g., `0.5` cpd,
@@ -193,13 +198,13 @@ freqs_right.iloc[
 # %% [markdown]
 # In most cases, we assume that the stimulus ordering within a paired combination does not matter,
 # that is,
-# the choice frequency of choosing stimulus $A$ over $B$ $P(A|A,B)$
+# the choice frequency of choosing stimulus $A$ over $B$ ($f(A|A,B)$)
 # shouldn't depend on whether the pair is $(A, B)$ or $(B, A)$.
 #
 # Under this assumption, we can simply add up the two respective choice frequencies,
 # for the two orderings of the pair:
 # $$
-# F(A | A,B) = F(L | L = A, R = B) + F(R | L = B, R = A)
+# f(A | A, B) = f(L | L = A, R = B) + f(R | L = B, R = A)
 # $$
 
 # %% [markdown]
@@ -224,7 +229,7 @@ freqs.iloc[
 # we get the number of repeats, e.g., $3+7=10$ repeats.
 # Thus, this representation is over-complete:
 # we have all the information in just the upper triangle over the table;
-# the lower triangle is equal to $N-F$.
+# the lower triangle is equal to $N_{r}-f$.
 #
 # Therefore, we usually just keep the upper triangle (and set the lower to `NaN`):
 
