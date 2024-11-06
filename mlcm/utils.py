@@ -28,20 +28,20 @@ def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("left", 
 
 
 def dimension_combinations(stim_levels):
-    """All possible unique stimuli, i.e., combinations of levels for stimulus dimensions
+    """Returns all possible unique stimuli combinations from a given set of stimulus levels (along several stimulus dimensions)
 
-    The Cartesian product, i.e., all possible combinations of `dimX` x `dimY`
+	The function allows multiple stimulus dimensions.
 
     Parameters
     ----------
     stim_levels : dict[str, list]
         unique stimulus levels per stimulus dimension,
-        e.g., {"dimX": [...], "dimY": [...]}
+        e.g., {"dimX": [1, 2, 3], "dimY": [4, 5]}
 
     Returns
     -------
     pandas.MultiIndex
-        all possible combinations of levels for the stimulus dimensions
+        all possible combinations of levels for the given stimulus dimensions
     """
     return (
         pd.MultiIndex.from_product(list(stim_levels.values()), names=stim_levels.keys())
