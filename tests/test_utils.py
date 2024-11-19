@@ -35,3 +35,30 @@ def test_dimension_combinations():
         ("Y", 2),
         ("Y", 3),
     ]
+
+
+def test_three_dimension_combinations():
+    stim_levels = {"dimY": ["X", "Y"], "dimX": [1, 2, 3], "dimZ": [0.5, 2.0, 5.0]}
+
+    unique_stimuli = utils.dimension_combinations(stim_levels)
+
+    assert list(unique_stimuli.values) == [
+        ("X", 1, 0.5),
+        ("X", 1, 2.0),
+        ("X", 1, 5.0),
+        ("X", 2, 0.5),
+        ("X", 2, 2.0),
+        ("X", 2, 5.0),
+        ("X", 3, 0.5),
+        ("X", 3, 2.0),
+        ("X", 3, 5.0),
+        ("Y", 1, 0.5),
+        ("Y", 1, 2.0),
+        ("Y", 1, 5.0),
+        ("Y", 2, 0.5),
+        ("Y", 2, 2.0),
+        ("Y", 2, 5.0),
+        ("Y", 3, 0.5),
+        ("Y", 3, 2.0),
+        ("Y", 3, 5.0),
+    ]
