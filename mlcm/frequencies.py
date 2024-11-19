@@ -38,8 +38,8 @@ def conjoint(trials, col, dim_names=("dimX", "dimY"), pair_names=("left", "right
 
     # Calculate frequencies (pivot table, summing over specified column)
     freqs = trials.pivot_table(
-        index=[f"{dim_names[1]}_{pair_names[0]}", f"{dim_names[0]}_{pair_names[0]}"],
-        columns=[f"{dim_names[1]}_{pair_names[1]}", f"{dim_names[0]}_{pair_names[1]}"],
+        index=[f"{dim_names[0]}_{pair_names[0]}", f"{dim_names[1]}_{pair_names[0]}"],
+        columns=[f"{dim_names[0]}_{pair_names[1]}", f"{dim_names[1]}_{pair_names[1]}"],
         values=col,
         aggfunc="sum",
     )

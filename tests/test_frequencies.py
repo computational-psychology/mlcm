@@ -18,17 +18,17 @@ def test_conjoint():
     freqs = frequencies.conjoint(trials, col="repeats")
 
     assert [freqs.index.name, freqs.columns.name] == ["left", "right"]
-    assert freqs.index.names == freqs.columns.names == ["dimY", "dimX"]
+    assert freqs.index.names == freqs.columns.names == ["dimX", "dimY"]
     assert (
         list(freqs.columns)
         == list(freqs.index)
         == [
-            ("X", 1),
-            ("X", 2),
-            ("X", 3),
-            ("Y", 1),
-            ("Y", 2),
-            ("Y", 3),
+            (1, "X"),
+            (1, "Y"),
+            (2, "X"),
+            (2, "Y"),
+            (3, "X"),
+            (3, "Y"),
         ]
     )
 
@@ -36,11 +36,11 @@ def test_conjoint():
         freqs.values.astype(float),
         np.array(
             [
-                [np.nan, np.nan, np.nan, np.nan, 3, np.nan],
+                [np.nan, np.nan, np.nan, 3, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                [4, np.nan, np.nan, np.nan, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, 2],
+                [4, np.nan, np.nan, np.nan, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
             ],
         ),
