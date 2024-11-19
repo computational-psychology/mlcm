@@ -30,7 +30,7 @@ def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("left", 
 def dimension_combinations(stim_levels):
     """Returns all possible unique stimuli combinations from a given set of stimulus levels (along several stimulus dimensions)
 
-	The function allows multiple stimulus dimensions.
+        The function allows multiple stimulus dimensions.
 
     Parameters
     ----------
@@ -45,6 +45,6 @@ def dimension_combinations(stim_levels):
     """
     return (
         pd.MultiIndex.from_product(list(stim_levels.values()), names=stim_levels.keys())
-        .swaplevel()
+        .reorder_levels(stim_levels.keys())
         .sort_values()
     )

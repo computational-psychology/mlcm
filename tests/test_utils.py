@@ -23,7 +23,7 @@ def test_extract_stim_levels():
 
 
 def test_dimension_combinations():
-    stim_levels = {"dimX": [1, 2, 3], "dimY": ["X", "Y"]}
+    stim_levels = {"dimY": ["X", "Y"], "dimX": [1, 2, 3]}
 
     unique_stimuli = utils.dimension_combinations(stim_levels)
 
