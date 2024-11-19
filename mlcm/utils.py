@@ -22,7 +22,9 @@ def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("left", 
     """
     unique_levels = {}
     for dim in dim_names:
-        unique_levels[dim] = pd.concat([trials[f"{dim}_{pair}"] for pair in pair_names]).unique()
+        levels = pd.concat([trials[f"{dim}_{pair}"] for pair in pair_names]).unique()
+        levels.sort()
+        unique_levels[dim] = levels
 
     return unique_levels
 
