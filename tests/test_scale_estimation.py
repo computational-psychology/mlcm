@@ -4,7 +4,17 @@ import pytest
 from mlcm import scale_estimation
 
 
-def test_integration(): ...
+def test_integration(trial_responses, modeltype="full"):
+    expected = np.array([[0, 0], [7.79569, 7.795741]])
+
+    result = scale_estimation.scale_estimation(
+        trial_responses=trial_responses,
+        pair_names=("l", "r"),
+        dim_names=("dimA", "dimB"),
+        modeltype=modeltype,
+    )
+
+    np.testing.assert_almost_equal(result["point_estimate"], expected, decimal=3)
 
 
 def test_model_comparison(): ...

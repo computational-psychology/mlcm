@@ -219,7 +219,16 @@ def unwrangle_responses(
 def unwrangle_scales(): ...
 
 
-def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-14, **options):
+def scale_estimation(
+    trial_responses,
+    dim_names=("dimX", "dimY"),
+    pair_names=("left", "right"),
+    response_col="response",
+    modeltype="add",
+    method="glm.fit",
+    epsilon=1e-14,
+    **options,
+):
     # Check / set options
     ...
 
@@ -229,7 +238,9 @@ def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon
     #     - keep index mappings
     # 3. reindex choice
     #     - keep choice mapping
-    parsed_trial_responses = ...
+    parsed_trial_responses = wrangle_responses(
+        trial_responses, dim_names=dim_names, pair_names=pair_names, response_col=response_col
+    )
 
     # MODEL SELECTION
     # Estimate add:
