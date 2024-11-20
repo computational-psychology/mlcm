@@ -2,6 +2,7 @@
 import warnings
 
 import numpy as np
+import pandas as pd
 import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
@@ -103,6 +104,37 @@ def goodness_of_fit(): ...
 
 
 def wrangle_responses(): ...
+
+
+def unwrangle_responses(
+    wrangled_responses: pd.DataFrame,
+    stim_levels={},
+    pair_names=("l", "r"),
+    response_col="response",
+):
+    ## Map index values to stimulus levels
+    # dict mapping from [1,> indices to stimulus levels, per stim dimension
+    stim_idc = {
+        dim: {idx: level for idx, level in enumerate(levels, start=1)}
+        for dim, levels in stim_levels.items()
+    }
+    # dict determining remapping, per column
+    mapper = {
+        col: stim_idc[dim]
+        for dim in stim_idc
+        for col in wrangled_responses.columns[wrangled_responses.columns.str.startswith(dim)]
+    }
+    # Apply mapping
+    trial_responses = wrangled_responses.replace(mapper)
+
+    ## Map responses to pair names
+    resp_mapper = {idx: name for idx, name in enumerate(pair_names)}
+    trial_responses = trial_responses.replace({"Resp": resp_mapper})
+
+    ## Rename column(s)
+    trial_responses = trial_responses.rename(columns={"Resp": response_col})
+
+    return trial_responses
 
 
 def wrangle_scales(): ...
