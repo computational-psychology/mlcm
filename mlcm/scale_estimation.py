@@ -137,7 +137,7 @@ def unwrangle_responses(
     return trial_responses
 
 
-def wrangle_scales(): ...
+def unwrangle_scales(): ...
 
 
 def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-14, **options):
