@@ -96,3 +96,47 @@ def scales_add_idc(epsilon):
             return np.array([[0, 0], [4.17, 0]])
         case _:
             raise ValueError("Invalid epsilon")
+
+@pytest.fixture
+def scales_add(stim_levels, dim_names):
+    scales = pd.concat(
+        [
+            pd.Series(
+                stim_levels[dim_names[0]] * len(stim_levels[dim_names[1]]), name=dim_names[0]
+            ),
+            pd.Series(
+                [
+                    item
+                    for item in stim_levels[dim_names[1]]
+                    for i in range(len(stim_levels[dim_names[0]]))
+                ],
+                name=dim_names[1],
+            ),
+            pd.Series([0, 7.795727, 0, 7.795727], name="scale"),
+        ],
+        axis="columns",
+    )
+
+    return scales
+
+
+@pytest.fixture
+def scales_full(stim_levels, dim_names):
+    scales = pd.concat(
+        [
+            pd.Series(
+                stim_levels[dim_names[0]] * len(stim_levels[dim_names[1]]), name=dim_names[0]
+            ),
+            pd.Series(
+                [
+                    item
+                    for item in stim_levels[dim_names[1]]
+                    for i in range(len(stim_levels[dim_names[0]]))
+                ],
+                name=dim_names[1],
+            ),
+            pd.Series([0, 7.795727, 0, 7.795741], name="scale"),
+        ],
+        axis="columns",
+    )
+    return scales

@@ -216,7 +216,26 @@ def unwrangle_responses(
     return trial_responses
 
 
-def unwrangle_scales(): ...
+def unwrangle_scales(scales_idc, stim_levels, modeltype):
+    #
+    if modeltype == "add":
+        ...
+
+    # Cast to dataframe
+    scales_natural = pd.DataFrame(scales_idc)
+
+    # Use indices to retrieve levels and name columns, rows
+    row_dim, col_dim = (key for key in stim_levels)
+    scales_natural.index = stim_levels[row_dim]
+    scales_natural.columns = stim_levels[col_dim]
+    scales_natural.columns.name = col_dim
+
+    scales_natural[row_dim] = scales_natural.index
+    scales_natural = scales_natural.melt(id_vars=row_dim, value_name="scale")
+
+    scales_natural = scales_natural.infer_objects()
+
+    return scales_natural
 
 
 def scale_estimation(
