@@ -7,6 +7,8 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 
+from mlcm.utils import extract_stim_levels
+
 importr("MLCM")
 
 
@@ -103,7 +105,84 @@ def remove_outliers(): ...
 def goodness_of_fit(): ...
 
 
-def wrangle_responses(): ...
+def wrangle_responses(
+    trial_responses,
+    dim_names=("dimX", "dimY"),
+    pair_names=("left", "right"),
+    response_col="response",
+):
+    """Wrangle "raw" trial results dataframe to format required by {{MLCM}} R package
+
+    The `{{MLCM}}` R package requires the data in a very specific format:
+    - every row is one trial
+    - first column 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
+    - pairs of columns `[dimname]_1` and `[dimname]_2` for each stimulus dimension,
+    - which contain the index along that stimulus dimension for the two paired stimuli
+
+    | Resp | dimX_1 | dimX_2 | dimY_1 | dimY_2 |
+    |------|--------|--------|--------|--------|
+    |  0   |   2    |    1   |    1   |    1   |
+
+    Parameters
+    ----------
+    trial_responses : pandas.DataFrame
+        raw trial response data, e.g., from experiment code, for N trials.
+        Should contain `response_col` containing responses that match one of the `pair_names`.
+        Should also contain pairs of columns in the form of `[dimX]_[pair]`,
+        e.g., "dimX_left", "dimY_right".
+        Column-order does not matter.
+    dim_names : tuple[str], optional
+        names for the stimulus dimensions, by default ("dimX", "dimY")
+    pair_names : tuple[str], optional
+        names for the stimulus pair members, by default ("left", "right")
+    response_col : str, optional
+        name of column containing raw responses, by default 'response'
+
+    Returns
+    -------
+    pandas.DataFrame
+        (N x 5) DataFrame with experimental data containing N trials,
+        with column 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
+        and pairs of columns `[dimname]_1` and `[dimname]_2` for each stimulus dimension,
+        indicating the index along that stimulus dimension for the two paired stimuli.
+    """
+
+    ## Rename & reorder columns/variables
+    # TODO: Determine substrs of pair_names that don't cause bugs (specifically for 'add' model)...
+    p_names = pair_names
+
+    # Setup column-renaming mapping
+    column_mapper = {response_col: "Resp"}  # insert response column first
+    for dim in dim_names:
+        column_mapper.update(
+            {f"{dim}_{name}": f"{dim}_{p_names[idx]}" for idx, name in enumerate(pair_names)}
+        )
+
+    wrangled = trial_responses.rename(columns=column_mapper)[[*column_mapper.values()]]
+
+    ## Map stimulus levels, responses, to indices
+    # Determine stimulus levels per dimension
+    unique_levels = extract_stim_levels(
+        trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
+
+    # Setup index-mappings, per stimulus dimension
+    indexing = {}
+    for dim in dim_names:
+        indexing[dim] = {level: idx + 1 for idx, level in enumerate(sorted(unique_levels[dim]))}
+
+    # Setup index-mappings, per column
+    indexing = {f"{dim}_{name}": indexing[dim] for dim in dim_names for name in p_names}
+
+    # Setup index-mapping for responses (0 or 1)
+    indexing["Resp"] = {name: idx for idx, name in enumerate(pair_names)}
+
+    # Recode values to indices
+    for dim in dim_names:
+        wrangled = wrangled.replace(indexing)
+    wrangled = wrangled.astype("int")
+
+    return wrangled
 
 
 def unwrangle_responses(

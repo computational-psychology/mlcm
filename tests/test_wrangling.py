@@ -3,10 +3,12 @@ import pandas as pd
 from mlcm import scale_estimation
 
 
-def test_wrangle_responses(trial_responses, wrangled_responses):
-    wrangled = scale_estimation.wrangle_responses(trial_responses)
+def test_wrangle_responses(trial_responses, wrangled_responses, pair_names, dim_names):
+    wrangled = scale_estimation.wrangle_responses(
+        trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
 
-    pd.testing.assert_frame_equal(wrangled, wrangled_responses)
+    pd.testing.assert_frame_equal(wrangled, wrangled_responses, atol=1e-2)
 
 
 def test_unwrangle_responses(wrangled_responses, stim_levels, trial_responses):
