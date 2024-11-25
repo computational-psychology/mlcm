@@ -110,6 +110,7 @@ def wrangle_responses(
     dim_names=("dimX", "dimY"),
     pair_names=("left", "right"),
     response_col="response",
+    stim_levels=None,
 ):
     """Wrangle "raw" trial results dataframe to format required by {{MLCM}} R package
 
@@ -162,14 +163,17 @@ def wrangle_responses(
 
     ## Map stimulus levels, responses, to indices
     # Determine stimulus levels per dimension
-    unique_levels = extract_stim_levels(
-        trial_responses, dim_names=dim_names, pair_names=pair_names
-    )
+    if not stim_levels:
+        unique_levels = extract_stim_levels(
+            trial_responses, dim_names=dim_names, pair_names=pair_names
+        )
+    else:
+        unique_levels = stim_levels
 
     # Setup index-mappings, per stimulus dimension
     indexing = {}
     for dim in dim_names:
-        indexing[dim] = {level: idx + 1 for idx, level in enumerate(sorted(unique_levels[dim]))}
+        indexing[dim] = {level: idx + 1 for idx, level in enumerate(unique_levels[dim])}
 
     # Setup index-mappings, per column
     indexing = {f"{dim}_{name}": indexing[dim] for dim in dim_names for name in p_names}
@@ -242,6 +246,7 @@ def scale_estimation(
     trial_responses,
     dim_names=("dimX", "dimY"),
     pair_names=("left", "right"),
+    stim_levels=None,
     response_col="response",
     modeltype="add",
     method="glm.fit",
@@ -257,10 +262,17 @@ def scale_estimation(
     #     - keep index mappings
     # 3. reindex choice
     #     - keep choice mapping
+    if stim_levels is None:
+        stim_levels = extract_stim_levels(
+            trial_responses, dim_names=dim_names, pair_names=pair_names
+        )
     parsed_trial_responses = wrangle_responses(
-        trial_responses, dim_names=dim_names, pair_names=pair_names, response_col=response_col
+        trial_responses,
+        stim_levels=stim_levels,
+        dim_names=dim_names,
+        pair_names=pair_names,
+        response_col=response_col,
     )
-    stim_levels = extract_stim_levels(trial_responses, dim_names=dim_names, pair_names=pair_names)
 
     # MODEL SELECTION
     # Estimate add:
