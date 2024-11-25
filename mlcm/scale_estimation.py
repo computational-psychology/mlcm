@@ -260,6 +260,7 @@ def scale_estimation(
     parsed_trial_responses = wrangle_responses(
         trial_responses, dim_names=dim_names, pair_names=pair_names, response_col=response_col
     )
+    stim_levels = extract_stim_levels(trial_responses, dim_names=dim_names, pair_names=pair_names)
 
     # MODEL SELECTION
     # Estimate add:
@@ -300,5 +301,8 @@ def scale_estimation(
     #
     result = {}
     result["point_estimate"] = point_estimate
+    result["scales"] = unwrangle_scales(
+        scales_idc=point_estimate, stim_levels=stim_levels, modeltype=modeltype
+    )
 
     return result

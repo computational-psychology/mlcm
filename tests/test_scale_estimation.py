@@ -1,20 +1,29 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from mlcm import scale_estimation
 
 
-def test_integration(trial_responses, modeltype="full"):
-    expected = np.array([[0, 0], [7.79569, 7.795741]])
+@pytest.mark.parametrize(
+    "trials,modeltype,expected",
+    [
+        ("trial_responses", "add", "scales_add"),
+        ("trial_responses", "full", "scales_full"),
+    ],
+)
+def test_integration(trials, pair_names, dim_names, modeltype, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    expected_scales = request.getfixturevalue(expected)
 
     result = scale_estimation.scale_estimation(
         trial_responses=trial_responses,
-        pair_names=("l", "r"),
-        dim_names=("dimA", "dimB"),
+        pair_names=pair_names,
+        dim_names=dim_names,
         modeltype=modeltype,
     )
 
-    np.testing.assert_almost_equal(result["point_estimate"], expected, decimal=3)
+    pd.testing.assert_frame_equal(result["scales"], expected_scales)
 
 
 def test_model_comparison(): ...
