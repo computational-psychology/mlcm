@@ -7,7 +7,7 @@ from rpy2.robjects.packages import importr
 importr("MLCM")
 
 
-def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon=1e-4):
+def _estimate(parsed_trial_responses, modeltype, method, epsilon):
     """Fit point estimate for the scales, using the {{MLCM}} R package.
 
     Uses rpy2 to convert the input data frame to an R dataframe,
@@ -19,21 +19,19 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
 
     | Resp | dimX_1 | dimX_2 | dimY_1 | dimY_2 |
     |------|--------|--------|--------|--------|
-    |  0   |   2    |    1   |    1   |    1   |
+    |  0   |   2    |    1   |    3   |    4   |
 
     Parameters
     ----------
     parsed_trial_responses : pandas.Dataframe
         (N x 5) DataFrame with experimental data containing N trials,
-        with column 'Resp'onses, coded as index `0` or `1`, indicating stimulus `1` or `2` resp.
+        with column 'Resp' containing the observer responses, coded as index `0` or `1`,
         and pairs of columns `[dimname]_1` and `[dimname]_2` for each stimulus dimension,
-        indicating the index along that stimulus dimension for the two paired stimuli.
+        indicating the stimulus *index* along that stimulus dimension for the two stimuli.
     modeltype : ['add', 'indep', 'full']
         whether to fit an `add`itive, `indep`endent, or `full` model,
-        by default 'add'.
     method : ['glm.fit', 'brglm.fit']
-        whether to use a regular `glm` or `b`ias-`r`educed glm fitting routine,
-        by default 'glm.fit'.
+        whether to use the regular glm ('glm') or the bias-reduced glm ('brglm.fit') fitting routine.
     epsilon : float, optional
         convergence tolerance, by default 1e-4.
 
@@ -45,6 +43,7 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
     """
     r_mlcm = robjects.r["mlcm"]
     r_as_mlcm_df = robjects.r["as.mlcm.df"]
+    r_glm_control = robjects.r["glm.control"]
 
     # converts pandas DataFrame to R DataFrame
     with (robjects.default_converter + pandas2ri.converter).context():
@@ -54,7 +53,8 @@ def _estimate(parsed_trial_responses, modeltype="add", method="glm.fit", epsilon
     r_data = r_as_mlcm_df(r_data)
 
     # estimation itself by calling mlcm(....)
-    scale_obj = r_mlcm(r_data, model=modeltype)
+    scale_obj = r_mlcm(r_data, model=modeltype, 
+                       control=r_glm_control(epsilon=epsilon, maxit = 50000))
 
     return scale_obj
 
@@ -85,7 +85,7 @@ def wrangle_responses(): ...
 def wrangle_scales(): ...
 
 
-def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-4, **options):
+def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-14, **options):
     # Check / set options
     ...
 
