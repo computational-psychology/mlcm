@@ -96,7 +96,12 @@ def compare_models():
     return modeltype
 
 
-def bootstrap_confidence(): ...
+def _bootstrap(scale_obj, nsim):
+    r_bootmlcm = robjects.r["boot.mlcm"]
+    res = r_bootmlcm(scale_obj, nsim=nsim)
+    samples = np.array(res.rx2("boot.samp"))
+
+    return samples
 
 
 def remove_outliers(): ...
@@ -117,7 +122,7 @@ def scale_estimation(
     **options,
 ):
     # Check / set options
-    ...
+    nsim = 1000  # default number of bootstrap samples
 
     # Wrangle data
     if stim_levels is None:
@@ -157,7 +162,8 @@ def scale_estimation(
     point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
     # OPTIONALLY: Confidence Intervals
-    # - bootstrap
+    bootstrap_samples = _bootstrap(r_scale_obj, nsim=nsim)
+    
     # - calculate CIs
     # - re-reindex CIs
     ...

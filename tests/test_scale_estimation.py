@@ -102,3 +102,21 @@ def test_estimate_raises_for_ind_model(wrangled_responses):
         scale_estimation._estimate(
             wrangled_responses, modeltype="add", whichdim=1, method="glm.fit", epsilon=1e-14
         )
+
+
+@pytest.mark.parametrize(
+    "trials",
+    ["wrangled_responses"],
+)
+@pytest.mark.parametrize("modeltype, nparams", [("add", 3), ("full", 4)])
+@pytest.mark.parametrize("nsim", [10, 50])
+def test_boostrap(trials, modeltype, nparams, nsim, request):
+    trial_responses = request.getfixturevalue(trials)
+    scale_obj = scale_estimation._estimate(
+        trial_responses, modeltype=modeltype, method="glm.fit", epsilon=1e-14
+    )
+    result = scale_estimation._bootstrap(scale_obj, nsim=nsim)
+    assert result.shape == (nparams - 1, nsim)
+
+
+
