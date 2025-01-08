@@ -1,5 +1,6 @@
 # imports
 import numpy as np
+import warnings
 import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
@@ -7,7 +8,7 @@ from rpy2.robjects.packages import importr
 importr("MLCM")
 
 
-def _estimate(parsed_trial_responses, modeltype, method, epsilon):
+def _estimate(parsed_trial_responses, modeltype, method, epsilon, whichdim=None):
     """Fit point estimate for the scales, using the {{MLCM}} R package.
 
     Uses rpy2 to convert the input data frame to an R dataframe,
@@ -28,12 +29,14 @@ def _estimate(parsed_trial_responses, modeltype, method, epsilon):
         with column 'Resp' containing the observer responses, coded as index `0` or `1`,
         and pairs of columns `[dimname]_1` and `[dimname]_2` for each stimulus dimension,
         indicating the stimulus *index* along that stimulus dimension for the two stimuli.
-    modeltype : ['add', 'indep', 'full']
-        whether to fit an `add`itive, `indep`endent, or `full` model,
+    modeltype : ['add', 'ind', 'full']
+        whether to fit an `add`itive, `ind`ependent, or `full` model.
     method : ['glm.fit', 'brglm.fit']
         whether to use the regular glm ('glm') or the bias-reduced glm ('brglm.fit') fitting routine.
-    epsilon : float, optional
+    epsilon : float
         convergence tolerance, by default 1e-4.
+    whichdim : int, optional
+        which dimension to consider in the independent model. Only valid for this modeltype
 
     Returns
     -------
@@ -41,6 +44,14 @@ def _estimate(parsed_trial_responses, modeltype, method, epsilon):
         output from {{MLCM}} R package
 
     """
+    # validate whichdim argument
+    if modeltype=='ind' and whichdim is None:
+        raise ValueError("Argument `whichdim` cannot be None for the independent model.")
+
+    if modeltype!='ind' and whichdim is not None:
+        warnings.warn("Warning. Omitting argument `whichdim` as the model is not the independent one.")
+
+    # gets R function pointers
     r_mlcm = robjects.r["mlcm"]
     r_as_mlcm_df = robjects.r["as.mlcm.df"]
     r_glm_control = robjects.r["glm.control"]
@@ -53,8 +64,12 @@ def _estimate(parsed_trial_responses, modeltype, method, epsilon):
     r_data = r_as_mlcm_df(r_data)
 
     # estimation itself by calling mlcm(....)
-    scale_obj = r_mlcm(r_data, model=modeltype, 
-                       control=r_glm_control(epsilon=epsilon, maxit = 50000))
+    if modeltype == 'ind':
+        scale_obj = r_mlcm(r_data, model=modeltype, whichdim=whichdim,
+                           control=r_glm_control(epsilon=epsilon, maxit = 50000))
+    else:
+        scale_obj = r_mlcm(r_data, model=modeltype,
+                           control=r_glm_control(epsilon=epsilon, maxit = 50000))
 
     return scale_obj
 
