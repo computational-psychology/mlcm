@@ -85,8 +85,13 @@ def compare_models():
     return modeltype
 
 
-def bootstrap_confidence(): ...
-
+def _bootstrap(scale_obj, nsim):
+	
+	r_bootmlcm = robjects.r["boot.mlcm"]
+	res = r_bootmlcm(scale_obj, nsim=nsim)
+	samples = np.array(res.rx2("boot.samp"))
+	return samples
+	
 
 def remove_outliers(): ...
 
@@ -102,7 +107,7 @@ def wrangle_scales(): ...
 
 def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-14, **options):
     # Check / set options
-    ...
+    nsim = 1000 # default number of bootstrap samples
 
     # Wrangle data
     # 1. rename columns
@@ -137,7 +142,8 @@ def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon
     point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
     # OPTIONALLY: Confidence Intervals
-    # - bootstrap
+    bootstrap_samples = _bootstrap(r_scale_obj, nsim=nsim)
+    
     # - calculate CIs
     # - re-reindex CIs
     ...

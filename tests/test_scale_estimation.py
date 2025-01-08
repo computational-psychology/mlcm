@@ -79,3 +79,14 @@ def test_estimate_rises_for_ind_model():
     with pytest.warns(UserWarning):
         scale_estimation._estimate(data, modeltype="add", whichdim=1, method='glm.fit', epsilon=1e-14)
 
+
+@pytest.mark.parametrize("modeltype, nparams", [("add", 3), ("full", 4)])
+@pytest.mark.parametrize("nsim", [10, 50])
+def test_boostrap(modeltype, nparams, nsim):
+	data = tiny_data_df
+	scale_obj = scale_estimation._estimate(data, modeltype=modeltype, method='glm.fit', epsilon=1e-14)
+	
+	result = scale_estimation._bootstrap(scale_obj, nsim=nsim)
+	assert(result.shape == (nparams-1, nsim)) 
+		
+
