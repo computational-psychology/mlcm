@@ -3,39 +3,37 @@ import pandas as pd
 from mlcm import utils
 
 
-def test_extract_stim_levels():
+def test_extract_stim_levels(pair_names, dim_names):
     trials = {
-        "dimX_left": [1, 2, 3],
-        "dimY_left": ["X", "Y", "X"],
-        "dimX_right": [2, 3, 1],
-        "dimY_right": ["Y", "Y", "X"],
-        "response": ["left", "right", "left"],
+        "dimA_l": [1, 2, 3],
+        "dimB_l": ["X", "Y", "X"],
+        "dimA_r": [2, 3, 1],
+        "dimB_r": ["Y", "Y", "X"],
+        "response": ["l", "r", "l"],
+    }
+    trials = pd.DataFrame(trials)
+
+    stim_levels = utils.extract_stim_levels(trials, dim_names=dim_names, pair_names=pair_names)
+
+    assert tuple(stim_levels.keys()) == dim_names
+    assert all(stim_levels["dimA"] == (1, 2, 3))
+    assert all(stim_levels["dimB"] == ("X", "Y"))
+
+
+def test_extract_3_dim_levels(pair_names):
+    trials = {
+        "dimX_l": [1, 2, 3],
+        "dimY_l": ["X", "Y", "X"],
+        "dimZ_l": [0.5, 5.0, 5.0],
+        "dimX_r": [2, 3, 1],
+        "dimY_r": ["Y", "Y", "X"],
+        "dimZ_r": [2.0, 0.5, 2.0],
+        "response": ["l", "r", "l"],
     }
     trials = pd.DataFrame(trials)
 
     stim_levels = utils.extract_stim_levels(
-        trials, dim_names=("dimX", "dimY"), pair_names=("left", "right")
-    )
-
-    assert tuple(stim_levels.keys()) == ("dimX", "dimY")
-    assert all(stim_levels["dimX"] == (1, 2, 3))
-    assert all(stim_levels["dimY"] == ("X", "Y"))
-
-
-def test_extract_3_dim_levels():
-    trials = {
-        "dimX_left": [1, 2, 3],
-        "dimY_left": ["X", "Y", "X"],
-        "dimZ_left": [0.5, 5.0, 5.0],
-        "dimX_right": [2, 3, 1],
-        "dimY_right": ["Y", "Y", "X"],
-        "dimZ_right": [2.0, 0.5, 2.0],
-        "response": ["left", "right", "left"],
-    }
-    trials = pd.DataFrame(trials)
-
-    stim_levels = utils.extract_stim_levels(
-        trials, dim_names=("dimX", "dimY", "dimZ"), pair_names=("left", "right")
+        trials, dim_names=("dimX", "dimY", "dimZ"), pair_names=pair_names
     )
 
     assert tuple(stim_levels.keys()) == ("dimX", "dimY", "dimZ")

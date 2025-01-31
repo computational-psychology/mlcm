@@ -4,7 +4,18 @@ import pytest
 
 
 @pytest.fixture
-def wrangled_responses():
+def pair_names():
+    return ("l", "r")
+
+
+@pytest.fixture
+def dim_names():
+    return ("dimA", "dimB")
+
+
+@pytest.fixture
+def wrangled_responses(dim_names, pair_names):
+    columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
     return pd.DataFrame(
         np.array(
             [
@@ -16,5 +27,5 @@ def wrangled_responses():
                 [1, 2, 1, 2, 2],
             ]
         ),
-        columns=["Resp", "dimA_l", "dimA_r", "dimB_l", "dimB_r"],
+        columns=["Resp", *columns],
     )
