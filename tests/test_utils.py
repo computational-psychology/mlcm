@@ -3,21 +3,14 @@ import pandas as pd
 from mlcm import utils
 
 
-def test_extract_stim_levels(pair_names, dim_names):
-    trials = {
-        "dimA_l": [1, 2, 3],
-        "dimB_l": ["X", "Y", "X"],
-        "dimA_r": [2, 3, 1],
-        "dimB_r": ["Y", "Y", "X"],
-        "response": ["l", "r", "l"],
-    }
-    trials = pd.DataFrame(trials)
+def test_extract_stim_levels(trial_responses, stim_levels, dim_names, pair_names):
+    extracted = utils.extract_stim_levels(
+        trial_responses, dim_names=dim_names, pair_names=pair_names
+    )
 
-    stim_levels = utils.extract_stim_levels(trials, dim_names=dim_names, pair_names=pair_names)
-
-    assert tuple(stim_levels.keys()) == dim_names
-    assert all(stim_levels["dimA"] == (1, 2, 3))
-    assert all(stim_levels["dimB"] == ("X", "Y"))
+    assert extracted.keys() == stim_levels.keys()
+    for dim in stim_levels:
+        assert all(extracted[dim] == stim_levels[dim])
 
 
 def test_extract_3_dim_levels(pair_names):

@@ -14,6 +14,11 @@ def dim_names():
 
 
 @pytest.fixture
+def stim_levels(dim_names):
+    return {dim_names[0]: ["high", "low"], dim_names[1]: [0.5, 3.0]}
+
+
+@pytest.fixture
 def wrangled_responses(dim_names, pair_names):
     columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
     return pd.DataFrame(
