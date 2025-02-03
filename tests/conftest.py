@@ -19,6 +19,22 @@ def stim_levels(dim_names):
 
 
 @pytest.fixture
+def trial_responses(dim_names, pair_names):
+    columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
+    return pd.DataFrame.from_records(
+        [
+            ("r", "high", "high", 0.5, 3.0),
+            ("r", "high", "high", 3.0, 0.5),
+            ("r", "high", "high", 3.0, 3.0),
+            ("l", "high", "low", 3.0, 0.5),
+            ("l", "high", "low", 3.0, 3.0),
+            ("r", "low", "high", 3.0, 3.0),
+        ],
+        columns=["response", *columns],
+    )
+
+
+@pytest.fixture
 def wrangled_responses(dim_names, pair_names):
     columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
     return pd.DataFrame(
