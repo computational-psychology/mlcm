@@ -16,44 +16,44 @@ def test_wrangle_scales(): ...
 def test_model_comparison(): ...
 
 
-def test_estimate_add_tiny(wrangled_responses):
-    expected = np.array([[0, 0], [7.8, 0]])
+@pytest.mark.parametrize(
+    "trials",
+    ["wrangled_responses"],
+)
+@pytest.mark.parametrize(
+    "modeltype,epsilon,expected",
+    [
+        ("add", 1e-14, np.array([[0, 0], [7.80, 0]])),
+        ("full", 1e-14, np.array([[0, 0], [7.80, 7.80]])),
+        ("full", 1e-4, np.array([[0, 0], [4.17, 4.17]])),
+    ],
+)
+def test_estimate(trials, modeltype, epsilon, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+
     scale_obj = scale_estimation._estimate(
-        wrangled_responses, modeltype="add", method="glm.fit", epsilon=1e-14
-    )
-    result = np.array(scale_obj.rx2("pscale"))
-
-    np.testing.assert_almost_equal(expected, result, decimal=2)
-
-
-def test_estimate_full_tiny(wrangled_responses):
-    expected = np.array([[0, 0], [7.8, 7.8]])
-    scale_obj = scale_estimation._estimate(
-        wrangled_responses, modeltype="full", method="glm.fit", epsilon=1e-14
-    )
-    result = np.array(scale_obj.rx2("pscale"))
-
-    np.testing.assert_almost_equal(expected, result, decimal=2)
-
-
-def test_estimate_full_tiny_smaller_epsilon(wrangled_responses):
-    expected = np.array([[0, 0], [4.17, 4.17]])
-    scale_obj = scale_estimation._estimate(
-        wrangled_responses, modeltype="full", method="glm.fit", epsilon=1e-4
+        trial_responses, modeltype=modeltype, method="glm.fit", epsilon=epsilon
     )
     result = np.array(scale_obj.rx2("pscale"))
 
     np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
-def test_estimate_indep_tiny(wrangled_responses):
-    expected = np.array([0, 7.8])
+@pytest.mark.parametrize(
+    "trials,whichdim,epsilon,expected",
+    [
+        ("wrangled_responses", 1, 1e-14, np.array([[0], [7.80]])),
+        ("wrangled_responses", 2, 1e-14, np.array([[0], [-0.43]])),
+    ],
+)
+def test_estimate_indep(trials, whichdim, epsilon, expected, request):
+    trial_responses = request.getfixturevalue(trials)
     scale_obj = scale_estimation._estimate(
-        wrangled_responses, modeltype="ind", whichdim=1, method="glm.fit", epsilon=1e-14
+        trial_responses, modeltype="ind", whichdim=whichdim, method="glm.fit", epsilon=epsilon
     )
-    result = np.squeeze(np.array(scale_obj.rx2("pscale")))
+    result = np.array(scale_obj.rx2("pscale"))
 
-    np.testing.assert_almost_equal(expected, result, decimal=2)
+    np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
 def test_estimate_raises_for_ind_model(wrangled_responses):
