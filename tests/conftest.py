@@ -50,3 +50,49 @@ def wrangled_responses(dim_names, pair_names):
         ),
         columns=["Resp", *columns],
     )
+
+
+@pytest.fixture
+def scales_full_idc(epsilon):
+    """Raw scales from 'full' model
+
+    Parameters
+    ----------
+    epsilon : float
+        Tolerance for convergence used in the fitting algorithm
+
+    Returns
+    -------
+    numpy.NDarray
+        scales
+    """
+    match epsilon:
+        case 1e-14:
+            return np.array([[0, 0], [7.80, 7.80]])
+        case 1e-4:
+            return np.array([[0, 0], [4.17, 4.17]])
+        case _:
+            raise ValueError("Invalid epsilon")
+
+
+@pytest.fixture
+def scales_add_idc(epsilon):
+    """Raw scales from 'add' model
+
+    Parameters
+    ----------
+    epsilon : float
+        Tolerance for convergence used in the fitting algorithm, by default 1e-14
+
+    Returns
+    -------
+    numpy.NDarray
+        scales
+    """
+    match epsilon:
+        case 1e-14:
+            return np.array([[0, 0], [7.80, 0]])
+        case 1e-4:
+            return np.array([[0, 0], [4.17, 0]])
+        case _:
+            raise ValueError("Invalid epsilon")

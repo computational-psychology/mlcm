@@ -23,13 +23,15 @@ def test_model_comparison(): ...
 @pytest.mark.parametrize(
     "modeltype,epsilon,expected",
     [
-        ("add", 1e-14, np.array([[0, 0], [7.80, 0]])),
-        ("full", 1e-14, np.array([[0, 0], [7.80, 7.80]])),
-        ("full", 1e-4, np.array([[0, 0], [4.17, 4.17]])),
+        ("add", 1e-14, "scales_add_idc"),
+        ("add", 1e-4, "scales_add_idc"),
+        ("full", 1e-14, "scales_full_idc"),
+        ("full", 1e-4, "scales_full_idc"),
     ],
 )
 def test_estimate(trials, modeltype, epsilon, expected, request):
     trial_responses = request.getfixturevalue(trials)
+    expected = request.getfixturevalue(expected)
 
     scale_obj = scale_estimation._estimate(
         trial_responses, modeltype=modeltype, method="glm.fit", epsilon=epsilon
