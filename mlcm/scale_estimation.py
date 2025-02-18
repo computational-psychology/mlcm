@@ -345,16 +345,19 @@ def scale_estimation(
     ...
 
     # Housekeeping: package output
-    # - estimation output
-    #   - scales
-    #   - sigma
-    # - CIs
-    # - options
-    #
     result = {}
-    result["point_estimate"] = point_estimate
     result["scales"] = unwrangle_scales(
         scales_idc=point_estimate, stim_levels=stim_levels, modeltype=modeltype
     )
+    result["point_estimate"] = point_estimate
+    result["sigma"] = r_scale_obj.rx2("sigma")[0]
+
+    # TODO: output CIs, optionally
+
+    # Document options
+    result["modeltype"] = r_scale_obj.rx2("model")[0]
+    result["method"] = r_scale_obj.rx2("method")[0]
+    result["link_function"] = r_scale_obj.rx2("link")[0]
+    result["epsilon"] = epsilon
 
     return result
