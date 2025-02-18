@@ -221,9 +221,9 @@ def unwrangle_responses(
 
 
 def unwrangle_scales(scales_idc, stim_levels, modeltype):
-    #
+    # For additive model, need to add constant shift to first scale, to get second scale
     if modeltype == "add":
-        ...
+        scales_idc[1, :] = scales_idc[0, :] + scales_idc[1, 0]
 
     # Cast to dataframe
     scales_natural = pd.DataFrame(scales_idc)
