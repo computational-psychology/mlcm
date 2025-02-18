@@ -7,7 +7,7 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 
-from mlcm.utils import extract_stim_levels
+from mlcm.utils import extract_stim_levels, first_diff_char
 
 importr("MLCM")
 
@@ -149,15 +149,12 @@ def wrangle_responses(
     """
 
     ## Rename & reorder columns/variables
-    # TODO: Determine substrs of pair_names that don't cause bugs (specifically for 'add' model)...
-    p_names = pair_names
 
     # Setup column-renaming mapping
     column_mapper = {response_col: "Resp"}  # insert response column first
+    p_names = first_diff_char(*pair_names)
     for dim in dim_names:
-        column_mapper.update(
-            {f"{dim}_{name}": f"{dim}_{p_names[idx]}" for idx, name in enumerate(pair_names)}
-        )
+        column_mapper.update({f"{dim}_{name}": f"{dim}_{p_names[name]}" for name in pair_names})
 
     wrangled = trial_responses.rename(columns=column_mapper)[[*column_mapper.values()]]
 
@@ -176,7 +173,7 @@ def wrangle_responses(
         indexing[dim] = {level: idx + 1 for idx, level in enumerate(unique_levels[dim])}
 
     # Setup index-mappings, per column
-    indexing = {f"{dim}_{name}": indexing[dim] for dim in dim_names for name in p_names}
+    indexing = {f"{dim}_{name}": indexing[dim] for dim in dim_names for name in p_names.values()}
 
     # Setup index-mapping for responses (0 or 1)
     indexing["Resp"] = {name: idx for idx, name in enumerate(pair_names)}
@@ -237,7 +234,12 @@ def unwrangle_responses(
     trial_responses = trial_responses.replace({"Resp": resp_mapper})
 
     ## Rename column(s)
-    trial_responses = trial_responses.rename(columns={"Resp": response_col})
+    column_mapper = {"Resp": response_col}  # insert response column first
+    p_names = first_diff_char(*pair_names)
+    for dim in stim_idc:
+        column_mapper.update({f"{dim}_{p_names[name]}": f"{dim}_{name}" for name in pair_names})
+
+    trial_responses = trial_responses.rename(columns=column_mapper)[[*column_mapper.values()]]
 
     return trial_responses
 
