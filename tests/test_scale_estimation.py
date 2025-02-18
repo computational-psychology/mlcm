@@ -80,6 +80,7 @@ def test_estimate_rises_for_ind_model():
         scale_estimation._estimate(data, modeltype="add", whichdim=1, method='glm.fit', epsilon=1e-14)
 
 
+# testing bootstrap
 @pytest.mark.parametrize("modeltype, nparams", [("add", 3), ("full", 4)])
 @pytest.mark.parametrize("nsim", [10, 50])
 def test_boostrap(modeltype, nparams, nsim):
