@@ -1,6 +1,7 @@
 # imports
-import numpy as np
 import warnings
+
+import numpy as np
 import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
@@ -45,11 +46,13 @@ def _estimate(parsed_trial_responses, modeltype, method, epsilon, whichdim=None)
 
     """
     # validate whichdim argument
-    if modeltype=='ind' and whichdim is None:
+    if modeltype == "ind" and whichdim is None:
         raise ValueError("Argument `whichdim` cannot be None for the independent model.")
 
-    if modeltype!='ind' and whichdim is not None:
-        warnings.warn("Warning. Omitting argument `whichdim` as the model is not the independent one.")
+    if modeltype != "ind" and whichdim is not None:
+        warnings.warn(
+            "Warning. Omitting argument `whichdim` as the model is not the independent one."
+        )
 
     # gets R function pointers
     r_mlcm = robjects.r["mlcm"]
@@ -64,12 +67,17 @@ def _estimate(parsed_trial_responses, modeltype, method, epsilon, whichdim=None)
     r_data = r_as_mlcm_df(r_data)
 
     # estimation itself by calling mlcm(....)
-    if modeltype == 'ind':
-        scale_obj = r_mlcm(r_data, model=modeltype, whichdim=whichdim,
-                           control=r_glm_control(epsilon=epsilon, maxit = 50000))
+    if modeltype == "ind":
+        scale_obj = r_mlcm(
+            r_data,
+            model=modeltype,
+            whichdim=whichdim,
+            control=r_glm_control(epsilon=epsilon, maxit=50000),
+        )
     else:
-        scale_obj = r_mlcm(r_data, model=modeltype,
-                           control=r_glm_control(epsilon=epsilon, maxit = 50000))
+        scale_obj = r_mlcm(
+            r_data, model=modeltype, control=r_glm_control(epsilon=epsilon, maxit=50000)
+        )
 
     return scale_obj
 

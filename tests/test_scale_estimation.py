@@ -1,22 +1,7 @@
-import pytest
-import warnings
 import numpy as np
-import pandas as pd
+import pytest
 
 from mlcm import scale_estimation
-
-tiny_data = np.array(
-    [
-        [1, 1, 1, 1, 2],
-        [1, 1, 1, 2, 1],
-        [1, 1, 1, 2, 2],
-        [0, 1, 2, 2, 1],
-        [0, 1, 2, 2, 2],
-        [1, 2, 1, 2, 2],
-    ]
-)
-
-tiny_data_df = pd.DataFrame(tiny_data, columns=["Resp", "dimA_1", "dimA_2", "dimB_1", "dimB_2"])
 
 
 def test_integration(): ...
@@ -31,51 +16,55 @@ def test_wrangle_scales(): ...
 def test_model_comparison(): ...
 
 
-def test_estimate_add_tiny():
-    data = tiny_data_df
-    expected = np.array([[0, 0], [7.8, 0]])
+@pytest.mark.parametrize(
+    "trials",
+    ["wrangled_responses"],
+)
+@pytest.mark.parametrize(
+    "modeltype,epsilon,expected",
+    [
+        ("add", 1e-14, "scales_add_idc"),
+        ("add", 1e-4, "scales_add_idc"),
+        ("full", 1e-14, "scales_full_idc"),
+        ("full", 1e-4, "scales_full_idc"),
+    ],
+)
+def test_estimate(trials, modeltype, epsilon, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    expected = request.getfixturevalue(expected)
 
-    scale_obj = scale_estimation._estimate(data, modeltype="add", method='glm.fit', epsilon=1e-14)
+    scale_obj = scale_estimation._estimate(
+        trial_responses, modeltype=modeltype, method="glm.fit", epsilon=epsilon
+    )
     result = np.array(scale_obj.rx2("pscale"))
 
-    np.testing.assert_almost_equal(expected, result, decimal=2)
+    np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
-def test_estimate_full_tiny():
-    data = tiny_data_df
-    expected = np.array([[0, 0], [7.8, 7.8]])
-
-    scale_obj = scale_estimation._estimate(data, modeltype="full", method='glm.fit', epsilon=1e-14)
+@pytest.mark.parametrize(
+    "trials,whichdim,epsilon,expected",
+    [
+        ("wrangled_responses", 1, 1e-14, np.array([[0], [7.80]])),
+        ("wrangled_responses", 2, 1e-14, np.array([[0], [-0.43]])),
+    ],
+)
+def test_estimate_indep(trials, whichdim, epsilon, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    scale_obj = scale_estimation._estimate(
+        trial_responses, modeltype="ind", whichdim=whichdim, method="glm.fit", epsilon=epsilon
+    )
     result = np.array(scale_obj.rx2("pscale"))
 
-    np.testing.assert_almost_equal(expected, result, decimal=2)
+    np.testing.assert_almost_equal(result, expected, decimal=2)
 
 
-def test_estimate_full_tiny_smaller_epsilon():
-    data = tiny_data_df
-    expected = np.array([[0, 0], [4.17, 4.17]])
-
-    scale_obj = scale_estimation._estimate(data, modeltype="full", method='glm.fit', epsilon=1e-4)
-    result = np.array(scale_obj.rx2("pscale"))
-
-    np.testing.assert_almost_equal(expected, result, decimal=2)
-
-
-def test_estimate_indep_tiny():
-    data = tiny_data_df
-    expected = np.array([0, 7.8])
-
-    scale_obj = scale_estimation._estimate(data, modeltype="ind", whichdim=1, method='glm.fit', epsilon=1e-14)
-    result = np.squeeze(np.array(scale_obj.rx2("pscale")))
-
-    np.testing.assert_almost_equal(expected, result, decimal=2)
-
-
-def test_estimate_rises_for_ind_model():
-    data = tiny_data_df
+def test_estimate_raises_for_ind_model(wrangled_responses):
     with pytest.raises(ValueError):
-        scale_estimation._estimate(data, modeltype="ind", whichdim=None, method='glm.fit', epsilon=1e-14)
+        scale_estimation._estimate(
+            wrangled_responses, modeltype="ind", whichdim=None, method="glm.fit", epsilon=1e-14
+        )
 
     with pytest.warns(UserWarning):
-        scale_estimation._estimate(data, modeltype="add", whichdim=1, method='glm.fit', epsilon=1e-14)
-
+        scale_estimation._estimate(
+            wrangled_responses, modeltype="add", whichdim=1, method="glm.fit", epsilon=1e-14
+        )
