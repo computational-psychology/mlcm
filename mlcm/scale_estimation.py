@@ -191,10 +191,32 @@ def wrangle_responses(
 
 def unwrangle_responses(
     wrangled_responses: pd.DataFrame,
-    stim_levels={},
+    stim_levels,
     pair_names=("l", "r"),
     response_col="response",
 ):
+    """Unwrangle responses from the format of {{MLCM}} to a more human-readable format
+
+    Parameters
+    ----------
+    wrangled_responses : pandas.DataFrame
+        (N x 5) DataFrame with experimental data containing N trials,
+    stim_levels : dict[str, list]
+        dictionary mapping stimulus dimension names to lists of unique levels.
+    pair_names : tuple[str], optional
+        names for the stimulus pair members, by default ("l", "r")
+    response_col : str, optional
+        name for column of responses, by default "response"
+
+    Returns
+    -------
+    pandas.DataFrame
+        raw-format trial response data, e.g., from experiment code, for N trials.
+        Witho `response_col` containing responses that match one of the `pair_names`.
+        Also contain pairs of columns in the form of `[dimX]_[pair]`,
+        e.g., "dimX_left", "dimY_right".
+    """
+
     ## Map index values to stimulus levels
     # dict mapping from [1,> indices to stimulus levels, per stim dimension
     stim_idc = {
@@ -221,6 +243,22 @@ def unwrangle_responses(
 
 
 def unwrangle_scales(scales_idc, stim_levels, modeltype):
+    """Unwrangle scales from the {{MLCM}} R package to a more human-readable format
+
+    Parameters
+    ----------
+    scales_idc : numpy.ndarray
+        (2 x N) array of scales, where N is the number of unique levels in the stimulus dimensions.
+    stim_levels : dict[str, list]
+        dictionary mapping stimulus dimension names to lists of unique levels.
+    modeltype : str
+        model type, either 'add' or 'full'
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with scales, where rows and columns are named after the stimulus levels.
+    """
     # For additive model, need to add constant shift to first scale, to get second scale
     if modeltype == "add":
         scales_idc[1, :] = scales_idc[0, :] + scales_idc[1, 0]
