@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mlcm.utils import first_diff_char
+
 
 @pytest.fixture
 def pair_names():
-    return ("l", "r")
+    return ("left", "right")
 
 
 @pytest.fixture
@@ -23,12 +25,12 @@ def trial_responses(dim_names, pair_names):
     columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
     return pd.DataFrame.from_records(
         [
-            ("r", "high", "high", 0.5, 3.0),
-            ("r", "high", "high", 3.0, 0.5),
-            ("r", "high", "high", 3.0, 3.0),
-            ("l", "high", "low", 3.0, 0.5),
-            ("l", "high", "low", 3.0, 3.0),
-            ("r", "low", "high", 3.0, 3.0),
+            ("right", "high", "high", 0.5, 3.0),
+            ("right", "high", "high", 3.0, 0.5),
+            ("right", "high", "high", 3.0, 3.0),
+            ("left", "high", "low", 3.0, 0.5),
+            ("left", "high", "low", 3.0, 3.0),
+            ("right", "low", "high", 3.0, 3.0),
         ],
         columns=["response", *columns],
     )
@@ -36,7 +38,8 @@ def trial_responses(dim_names, pair_names):
 
 @pytest.fixture
 def wrangled_responses(dim_names, pair_names):
-    columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
+    p_names = first_diff_char(*pair_names)
+    columns = [f"{dim}_{side}" for dim in dim_names for side in p_names.values()]
     return pd.DataFrame(
         np.array(
             [
@@ -96,6 +99,7 @@ def scales_add_idc(epsilon):
             return np.array([[0, 0], [4.17, 0]])
         case _:
             raise ValueError("Invalid epsilon")
+
 
 @pytest.fixture
 def scales_add(stim_levels, dim_names):
