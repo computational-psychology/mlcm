@@ -297,11 +297,6 @@ def scale_estimation(
     ...
 
     # Wrangle data
-    # 1. rename columns
-    # 2. reindex physical stim values
-    #     - keep index mappings
-    # 3. reindex choice
-    #     - keep choice mapping
     if stim_levels is None:
         stim_levels = extract_stim_levels(
             trial_responses, dim_names=dim_names, pair_names=pair_names
