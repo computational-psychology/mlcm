@@ -1,11 +1,11 @@
 import pandas as pd
 import pytest
 
-from mlcm import scale_estimation
+from mlcm import _wrangle
 
 
 def test_wrangle_responses(trial_responses, wrangled_responses, pair_names, dim_names):
-    wrangled = scale_estimation.wrangle_responses(
+    wrangled = _wrangle.wrangle_responses(
         trial_responses, dim_names=dim_names, pair_names=pair_names
     )
 
@@ -13,7 +13,7 @@ def test_wrangle_responses(trial_responses, wrangled_responses, pair_names, dim_
 
 
 def test_unwrangle_responses(wrangled_responses, stim_levels, pair_names, trial_responses):
-    unwrangled = scale_estimation.unwrangle_responses(
+    unwrangled = _wrangle.unwrangle_responses(
         wrangled_responses, stim_levels=stim_levels, pair_names=pair_names
     )
 
@@ -31,7 +31,7 @@ def test_unwrangle_scales(idc, epsilon, expected, modeltype, stim_levels, reques
     scales_idc = request.getfixturevalue(idc)
     scales_natural = request.getfixturevalue(expected)
 
-    unwrangled = scale_estimation.unwrangle_scales(
+    unwrangled = _wrangle.unwrangle_scales(
         scales_idc, stim_levels=stim_levels, modeltype=modeltype
     )
 
