@@ -149,3 +149,49 @@ def scales_full(stim_levels, dim_names):
         axis="columns",
     )
     return scales
+
+
+@pytest.fixture
+def scales_full_idc(stim_levels, dim_names):
+    scales = pd.concat(
+        [
+            pd.Series(
+                [*range(1, len(stim_levels[dim_names[0]]) + 1)] * len(stim_levels[dim_names[1]]),
+                name=dim_names[0],
+            ),
+            pd.Series(
+                [
+                    item + 1
+                    for item in range(len(stim_levels[dim_names[1]]))
+                    for i in range(len(stim_levels[dim_names[0]]))
+                ],
+                name=dim_names[1],
+            ),
+            pd.Series([0, 7.795727, 0, 7.795741], name="scale"),
+        ],
+        axis="columns",
+    )
+    return scales
+
+
+@pytest.fixture
+def scales_add_idc(stim_levels, dim_names):
+    scales = pd.concat(
+        [
+            pd.Series(
+                [*range(1, len(stim_levels[dim_names[0]]) + 1)] * len(stim_levels[dim_names[1]]),
+                name=dim_names[0],
+            ),
+            pd.Series(
+                [
+                    item + 1
+                    for item in range(len(stim_levels[dim_names[1]]))
+                    for i in range(len(stim_levels[dim_names[0]]))
+                ],
+                name=dim_names[1],
+            ),
+            pd.Series([0, 7.795727, 0, 7.795727], name="scale"),
+        ],
+        axis="columns",
+    )
+    return scales
