@@ -26,6 +26,27 @@ def test_integration(trials, pair_names, dim_names, modeltype, expected, request
     pd.testing.assert_frame_equal(result["scales"], expected_scales)
 
 
+@pytest.mark.parametrize(
+    "trials,modeltype,expected",
+    [
+        ("wrangled_responses", "add", "scales_add_idc"),
+        ("wrangled_responses", "full", "scales_full_idc"),
+    ],
+)
+def test_already_wrangled(trials, pair_names, p_names, dim_names, modeltype, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    expected_scales = request.getfixturevalue(expected)
+
+    result = scale_estimation.scale_estimation(
+        trial_responses=trial_responses,
+        pair_names=p_names.values(),
+        dim_names=dim_names,
+        modeltype=modeltype,
+    )
+
+    pd.testing.assert_frame_equal(result["scales"], expected_scales)
+
+
 def test_model_comparison(): ...
 
 
