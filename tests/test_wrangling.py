@@ -31,8 +31,8 @@ def test_unwrangle_responses(wrangled_responses, stim_levels, pair_names, trial_
 @pytest.mark.parametrize(
     "idc, modeltype, expected, epsilon",
     [
-        ("scales_add_idc", "add", "scales_add", 1e-14),
-        ("scales_full_idc", "full", "scales_full", 1e-14),
+        ("scales_array_add", "add", "scales_add", 1e-14),
+        ("scales_array_full", "full", "scales_full", 1e-14),
     ],
 )
 def test_unwrangle_scales(idc, epsilon, expected, modeltype, stim_levels, request):

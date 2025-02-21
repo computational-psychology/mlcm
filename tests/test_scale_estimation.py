@@ -36,10 +36,10 @@ def test_model_comparison(): ...
 @pytest.mark.parametrize(
     "modeltype,epsilon,expected",
     [
-        ("add", 1e-14, "scales_add_idc"),
-        ("add", 1e-4, "scales_add_idc"),
-        ("full", 1e-14, "scales_full_idc"),
-        ("full", 1e-4, "scales_full_idc"),
+        ("add", 1e-14, "scales_array_add"),
+        ("add", 1e-4, "scales_array_add"),
+        ("full", 1e-14, "scales_array_full"),
+        ("full", 1e-4, "scales_array_full"),
     ],
 )
 def test_estimate(trials, modeltype, epsilon, expected, request):

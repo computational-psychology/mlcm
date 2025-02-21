@@ -61,7 +61,7 @@ def wrangled_responses(dim_names, pair_names):
 
 
 @pytest.fixture
-def scales_full_idc(epsilon):
+def scales_array_full(epsilon):
     """Raw scales from 'full' model
 
     Parameters
@@ -84,7 +84,7 @@ def scales_full_idc(epsilon):
 
 
 @pytest.fixture
-def scales_add_idc(epsilon):
+def scales_array_add(epsilon):
     """Raw scales from 'add' model
 
     Parameters
