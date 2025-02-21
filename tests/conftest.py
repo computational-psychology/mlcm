@@ -11,6 +11,11 @@ def pair_names():
 
 
 @pytest.fixture
+def p_names():
+    return {"left": "l", "right": "r"}
+
+
+@pytest.fixture
 def dim_names():
     return ("dimA", "dimB")
 

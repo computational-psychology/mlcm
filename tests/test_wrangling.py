@@ -12,6 +12,14 @@ def test_wrangle_responses(trial_responses, wrangled_responses, pair_names, dim_
     pd.testing.assert_frame_equal(wrangled, wrangled_responses, atol=1e-2)
 
 
+def test_already_wrangled(wrangled_responses, dim_names, p_names):
+    wrangled = _wrangle.wrangle_responses(
+        wrangled_responses, dim_names=dim_names, pair_names=p_names.values()
+    )
+
+    pd.testing.assert_frame_equal(wrangled, wrangled_responses, atol=1e-2)
+
+
 def test_unwrangle_responses(wrangled_responses, stim_levels, pair_names, trial_responses):
     unwrangled = _wrangle.unwrangle_responses(
         wrangled_responses, stim_levels=stim_levels, pair_names=pair_names
