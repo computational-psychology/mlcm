@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from mlcm import utils
 
@@ -15,13 +16,13 @@ def test_extract_stim_levels(trial_responses, stim_levels, dim_names, pair_names
 
 def test_extract_3_dim_levels(pair_names):
     trials = {
-        "dimX_l": [1, 2, 3],
-        "dimY_l": ["X", "Y", "X"],
-        "dimZ_l": [0.5, 5.0, 5.0],
-        "dimX_r": [2, 3, 1],
-        "dimY_r": ["Y", "Y", "X"],
-        "dimZ_r": [2.0, 0.5, 2.0],
-        "response": ["l", "r", "l"],
+        "dimX_left": [1, 2, 3],
+        "dimY_left": ["X", "Y", "X"],
+        "dimZ_left": [0.5, 5.0, 5.0],
+        "dimX_right": [2, 3, 1],
+        "dimY_right": ["Y", "Y", "X"],
+        "dimZ_right": [2.0, 0.5, 2.0],
+        "response": ["left", "right", "left"],
     }
     trials = pd.DataFrame(trials)
 
@@ -75,3 +76,18 @@ def test_three_dimension_combinations():
         ("Y", 3, 2.0),
         ("Y", 3, 5.0),
     ]
+
+
+@pytest.mark.parametrize(
+    "a, b, expected",
+    [
+        ("left", "right", ("l", "r")),
+        ("l", "r", ("l", "r")),
+        ("lef", "lex", ("f", "x")),
+        ("stim1", "stim2", ("1", "2")),
+    ],
+)
+def test_first_diff_char(a, b, expected):
+    extracted = utils.first_diff_char(a, b)
+
+    assert extracted == {a: expected[0], b: expected[1]}

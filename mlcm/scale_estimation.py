@@ -6,6 +6,9 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 
+from mlcm._wrangle import unwrangle_scales, wrangle_responses
+from mlcm.utils import extract_stim_levels
+
 importr("MLCM")
 
 
@@ -102,23 +105,32 @@ def remove_outliers(): ...
 def goodness_of_fit(): ...
 
 
-def wrangle_responses(): ...
-
-
-def wrangle_scales(): ...
-
-
-def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon=1e-14, **options):
+def scale_estimation(
+    trial_responses,
+    dim_names=("dimX", "dimY"),
+    pair_names=("left", "right"),
+    stim_levels=None,
+    response_col="response",
+    modeltype="add",
+    method="glm.fit",
+    epsilon=1e-14,
+    **options,
+):
     # Check / set options
     ...
 
     # Wrangle data
-    # 1. rename columns
-    # 2. reindex physical stim values
-    #     - keep index mappings
-    # 3. reindex choice
-    #     - keep choice mapping
-    parsed_trial_responses = ...
+    if stim_levels is None:
+        stim_levels = extract_stim_levels(
+            trial_responses, dim_names=dim_names, pair_names=pair_names
+        )
+    parsed_trial_responses = wrangle_responses(
+        trial_responses,
+        stim_levels=stim_levels,
+        dim_names=dim_names,
+        pair_names=pair_names,
+        response_col=response_col,
+    )
 
     # MODEL SELECTION
     # Estimate add:
@@ -151,13 +163,19 @@ def scale_estimation(trial_responses, modeltype="add", method="glm.fit", epsilon
     ...
 
     # Housekeeping: package output
-    # - estimation output
-    #   - scales
-    #   - sigma
-    # - CIs
-    # - options
-    #
     result = {}
+    result["scales"] = unwrangle_scales(
+        scales_idc=point_estimate, stim_levels=stim_levels, modeltype=modeltype
+    )
     result["point_estimate"] = point_estimate
+    result["sigma"] = r_scale_obj.rx2("sigma")[0]
+
+    # TODO: output CIs, optionally
+
+    # Document options
+    result["modeltype"] = r_scale_obj.rx2("model")[0]
+    result["method"] = r_scale_obj.rx2("method")[0]
+    result["link_function"] = r_scale_obj.rx2("link")[0]
+    result["epsilon"] = epsilon
 
     return result

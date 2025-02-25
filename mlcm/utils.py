@@ -50,3 +50,43 @@ def dimension_combinations(stim_levels):
         .reorder_levels(stim_levels.keys())
         .sort_values()
     )
+
+
+def first_diff_char(a, b):
+    """Return the first characters that differs between two strings
+
+    Parameters
+    ----------
+    a : str
+        first string
+    b : str
+        second string
+
+    Returns
+    -------
+    dict[str, str]
+        mapping of the two strings to the first differing character
+
+    Raises
+    ------
+    ValueError
+        if the two strings are identical
+
+    Examples
+    --------
+    >>> first_diff_char("left", "right")
+    {"left": "l", "right": "r"}
+    >>> first_diff_char("l", "r")
+    {"l": "l", "r": "r"}
+    >>> first_diff_char("lef", "lex")
+    {"lef": "f", "lex": "x"}
+
+    """
+    if a == b:
+        raise ValueError("Strings are identical")
+
+    for i, (a_char, b_char) in enumerate(zip(a, b)):
+        if a_char != b_char:
+            break
+
+    return {a: a_char, b: b_char}

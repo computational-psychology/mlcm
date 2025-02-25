@@ -1,16 +1,50 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from mlcm import scale_estimation
 
 
-def test_integration(): ...
+@pytest.mark.parametrize(
+    "trials,modeltype,expected",
+    [
+        ("trial_responses", "add", "scales_add"),
+        ("trial_responses", "full", "scales_full"),
+    ],
+)
+def test_integration(trials, pair_names, dim_names, modeltype, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    expected_scales = request.getfixturevalue(expected)
+
+    result = scale_estimation.scale_estimation(
+        trial_responses=trial_responses,
+        pair_names=pair_names,
+        dim_names=dim_names,
+        modeltype=modeltype,
+    )
+
+    pd.testing.assert_frame_equal(result["scales"], expected_scales)
 
 
-def test_wrangle_data(): ...
+@pytest.mark.parametrize(
+    "trials,modeltype,expected",
+    [
+        ("wrangled_responses", "add", "scales_add_idc"),
+        ("wrangled_responses", "full", "scales_full_idc"),
+    ],
+)
+def test_already_wrangled(trials, pair_names, p_names, dim_names, modeltype, expected, request):
+    trial_responses = request.getfixturevalue(trials)
+    expected_scales = request.getfixturevalue(expected)
 
+    result = scale_estimation.scale_estimation(
+        trial_responses=trial_responses,
+        pair_names=p_names.values(),
+        dim_names=dim_names,
+        modeltype=modeltype,
+    )
 
-def test_wrangle_scales(): ...
+    pd.testing.assert_frame_equal(result["scales"], expected_scales)
 
 
 def test_model_comparison(): ...
@@ -23,10 +57,10 @@ def test_model_comparison(): ...
 @pytest.mark.parametrize(
     "modeltype,epsilon,expected",
     [
-        ("add", 1e-14, "scales_add_idc"),
-        ("add", 1e-4, "scales_add_idc"),
-        ("full", 1e-14, "scales_full_idc"),
-        ("full", 1e-4, "scales_full_idc"),
+        ("add", 1e-14, "scales_array_add"),
+        ("add", 1e-4, "scales_array_add"),
+        ("full", 1e-14, "scales_array_full"),
+        ("full", 1e-4, "scales_array_full"),
     ],
 )
 def test_estimate(trials, modeltype, epsilon, expected, request):
