@@ -107,7 +107,7 @@ def unwrangle_responses(
     -------
     pandas.DataFrame
         raw-format trial response data, e.g., from experiment code, for N trials.
-        Witho `response_col` containing responses that match one of the `pair_names`.
+        With `response_col` containing responses that match one of the `pair_names`.
         Also contain pairs of columns in the form of `[dimX]_[pair]`,
         e.g., "dimX_left", "dimY_right".
     """

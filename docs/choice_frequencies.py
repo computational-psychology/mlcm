@@ -222,7 +222,7 @@ freqs.iloc[
 ]
 
 # %% [markdown]
-# Here each cells shows the frequency of choosing the stimulus defined by the columnns.
+# Here each cells shows the frequency of choosing the stimulus defined by the columns.
 # regardless of the ordering of the stimuli within a pair.
 #
 # What we can also see, is that if we add up cells mirrored over the major diagonal,
