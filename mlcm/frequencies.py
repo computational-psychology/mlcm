@@ -91,7 +91,7 @@ def collapse(freqs_row, freqs_col):
     freqs = np.stack([freqs_row.T, freqs_col])  # transposing one, makes corresponding to other
     freqs = np.nansum(freqs, axis=0)  # sum over choices, treating NaNs as 0s
 
-    # Since frequencies are now symmetrical, collapse over diagnoal
+    # Since frequencies are now symmetrical, collapse over diagonal
     # freqs_upper = np.tril(freqs, k=-1).T + np.triu(freqs)
     freqs_upper = np.triu(freqs)
 
