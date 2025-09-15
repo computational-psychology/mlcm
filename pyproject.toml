@@ -28,7 +28,12 @@ dependencies = ["numpy", "matplotlib", "pandas", "rpy2"]
 [dependency-groups]
 test = ["pytest"]
 docs = ["jupytext>=1.13.3", "ipykernel"]
-dev = ["ruff", { include-group = "test" }, { include-group = "docs" }]
+dev = [
+    "ruff",
+    "codespell",
+    { include-group = "test" },
+    { include-group = "docs" },
+]
 
 
 [project.urls]
