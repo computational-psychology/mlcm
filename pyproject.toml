@@ -25,16 +25,11 @@ version = "0.0.1"
 requires-python = ">=3.8"
 dependencies = ["numpy", "matplotlib", "pandas", "rpy2"]
 
-[project.optional-dependencies]
-dev = ["pytest", "black", "flake8"]
-docs = [
-    "jupyter-book==0.14",
-    "jupytext>=1.13.3",
-    "jupyterlab_myst",
-    "myst_nb",
-    "ipywidgets",
-    "sphinx-hoverxref",
-]
+[dependency-groups]
+test = ["pytest"]
+docs = ["jupytext>=1.13.3", "ipykernel"]
+dev = ["ruff", { include-group = "test" }, { include-group = "docs" }]
+
 
 [project.urls]
 repository = "https://github.com/computational-psychology/mlcm.git"
@@ -51,10 +46,5 @@ include = [
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 
 
-[tool.black]
+[tool.ruff]
 line-length = 99
-target-version = ["py311"]
-
-[tool.isort]
-profile = "black"
-line_length = 99
