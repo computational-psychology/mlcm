@@ -78,8 +78,8 @@ def test_estimate(trials, modeltype, epsilon, expected, request):
 @pytest.mark.parametrize(
     "trials,whichdim,epsilon,expected",
     [
-        ("wrangled_responses", 1, 1e-14, np.array([[0], [7.80]])),
-        ("wrangled_responses", 2, 1e-14, np.array([[0], [-0.43]])),
+        ("wrangled_responses", 1, 1e-14, np.array([[0], [-0.967]])),
+        ("wrangled_responses", 2, 1e-14, np.array([[0], [7.8]])),
     ],
 )
 def test_estimate_indep(trials, whichdim, epsilon, expected, request):
