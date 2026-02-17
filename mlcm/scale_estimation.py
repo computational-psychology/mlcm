@@ -6,7 +6,7 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 
-from mlcm._wrangle import unwrangle_scales, wrangle_responses
+from mlcm._wrangle import CIs_from_bootstrap, unwrangle_scales, wrangle_responses
 from mlcm.utils import extract_stim_levels
 
 importr("MLCM")
@@ -127,10 +127,12 @@ def scale_estimation(
     modeltype="add",
     method="glm.fit",
     epsilon=1e-14,
+    bootstrap_nsim=1000,
+    ci_alpha=0.05,
     **options,
 ):
     # Check / set options
-    nsim = 1000  # default number of bootstrap samples
+    ...
 
     # Wrangle data
     if stim_levels is None:
@@ -170,11 +172,14 @@ def scale_estimation(
     point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
     # OPTIONALLY: Confidence Intervals
-    bootstrap_samples = _bootstrap(r_scale_obj, nsim=nsim)
-    
-    # - calculate CIs
-    # - re-reindex CIs
-    ...
+    if bootstrap_nsim:
+        bootstrap_samples = _bootstrap(r_scale_obj, nsim=bootstrap_nsim)
+        CIs = CIs_from_bootstrap(
+            bootstrap_samples=bootstrap_samples,
+            stim_levels=stim_levels,
+            modeltype=modeltype,
+            alpha=ci_alpha,
+        )
 
     # Housekeeping: package output
     result = {}
@@ -184,7 +189,9 @@ def scale_estimation(
     result["point_estimate"] = point_estimate
     result["sigma"] = r_scale_obj.rx2("sigma")[0]
 
-    # TODO: output CIs, optionally
+    # Output CIs, optionally
+    if CIs is not None:
+        result["CIs"] = CIs
 
     # Document options
     result["modeltype"] = r_scale_obj.rx2("model")[0]
