@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from mlcm.utils import extract_stim_levels, first_diff_char
@@ -178,3 +179,34 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
     scales_natural = scales_natural.infer_objects()
 
     return scales_natural
+
+
+def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, alpha=0.05):
+    # Calculate CIs
+    boundary = alpha / 2
+    ci_lowers = np.quantile(bootstrap_samples, boundary, axis=1)
+    ci_uppers = np.quantile(bootstrap_samples, (1 - boundary), axis=1)
+
+    # First scale value is always 0, not inc in bootstrap samples
+    ci_lowers = np.insert(ci_lowers, 0, 0)
+    ci_uppers = np.insert(ci_uppers, 0, 0)
+
+    # Reshape to match scales shape
+    shape = list(reversed([len(x) for x in stim_levels.values()]))
+    ci_lowers = ci_lowers.reshape(*shape).T
+    ci_lowers = unwrangle_scales(
+        scales_idc=ci_lowers,
+        stim_levels=stim_levels,
+        modeltype=modeltype,
+    ).rename(columns={"scale": f"CI_{boundary:.3f}"})
+    ci_uppers = ci_uppers.reshape(*shape).T
+    ci_uppers = unwrangle_scales(
+        scales_idc=ci_uppers,
+        stim_levels=stim_levels,
+        modeltype=modeltype,
+    ).rename(columns={"scale": f"CI_{(1 - boundary):.3f}"})
+
+    # Concat
+    ci = pd.merge(ci_lowers, ci_uppers, on=list(stim_levels.keys()))
+
+    return ci
