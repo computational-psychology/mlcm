@@ -97,6 +97,14 @@ def compare_models():
 
 
 def _bootstrap(scale_obj, nsim):
+    """Bootstrap the scale estimates, using the {{MLCM}} R package.
+
+    The R ``boot.mlcm`` function returns bootstrap samples as a
+    ``(n_free_params, nsim)`` array.
+    These can expanded into the ``(n_levels_dim1, n_levels_dim2, nsim)`` pscale grid using the
+    `reshape_bootstrap_samples` function.
+
+    """
     r_bootmlcm = robjects.r["boot.mlcm"]
     res = r_bootmlcm(scale_obj, nsim=nsim)
     samples = np.array(res.rx2("boot.samp"))
