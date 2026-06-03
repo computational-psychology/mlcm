@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -23,8 +24,7 @@ def extract_stim_levels(trials, dim_names=("dimX", "dimY"), pair_names=("left", 
     unique_levels = {}
     for dim in dim_names:
         levels = pd.concat([trials[f"{dim}_{pair}"] for pair in pair_names]).unique()
-        levels.sort()
-        unique_levels[dim] = levels
+        unique_levels[dim] = np.sort(np.asarray(levels))
 
     return unique_levels
 

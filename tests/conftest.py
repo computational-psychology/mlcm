@@ -1,3 +1,15 @@
+"""
+Defining fixtures for testing scale estimation.
+
+It contains:
+
+-  a 'mock' toy dataset of two dimensions, two levels per dimension, and 7 trials.
+- the expected scale output for this toy dataset, for all mlcm models 
+(independent, additive and full).
+
+Fixtures are used by test_wranging.py and test_scale_estimation.py
+"""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -22,7 +34,7 @@ def dim_names():
 
 @pytest.fixture
 def stim_levels(dim_names):
-    return {dim_names[0]: ["high", "low"], dim_names[1]: [0.5, 3.0]}
+    return {dim_names[0]: [0.5, 3.0], dim_names[1]: ["high", "low"]}
 
 
 @pytest.fixture
@@ -30,12 +42,20 @@ def trial_responses(dim_names, pair_names):
     columns = [f"{dim}_{side}" for dim in dim_names for side in pair_names]
     return pd.DataFrame.from_records(
         [
-            ("right", "high", "high", 0.5, 3.0),
-            ("right", "high", "high", 3.0, 0.5),
-            ("right", "high", "high", 3.0, 3.0),
-            ("left", "high", "low", 3.0, 0.5),
-            ("left", "high", "low", 3.0, 3.0),
-            ("right", "low", "high", 3.0, 3.0),
+            # Same dimB (high), right has higher dimA
+            (pair_names[1], 0.5, 3.0, "high", "high"),
+            # Same dimB (high), left has higher dimA
+            (pair_names[0], 3.0, 0.5, "high", "high"),
+            # Same dimB (low), right has higher dimA
+            (pair_names[1], 0.5, 3.0, "low", "low"),
+            # Same dimB (low), left has higher dimA
+            (pair_names[0], 3.0, 0.5, "low", "low"),
+            # Same dimA (3.0), right has higher dimB
+            (pair_names[1], 3.0, 3.0, "low", "high"),
+            # Different dimA and dimB, right wins on both
+            (pair_names[1], 0.5, 3.0, "low", "high"),
+            # Different dimA and dimB, dimB vs dimA conflict
+            (pair_names[0], 0.5, 3.0, "high", "low"),
         ],
         columns=["response", *columns],
     )
@@ -48,12 +68,20 @@ def wrangled_responses(dim_names, pair_names):
     return pd.DataFrame(
         np.array(
             [
-                [1, 1, 1, 1, 2],
-                [1, 1, 1, 2, 1],
-                [1, 1, 1, 2, 2],
-                [0, 1, 2, 2, 1],
-                [0, 1, 2, 2, 2],
-                [1, 2, 1, 2, 2],
+                # Same dimB (high), right has higher dimA
+                [1, 1, 2, 1, 1],
+                # Same dimB (high), left has higher dimA
+                [0, 2, 1, 1, 1],
+                # Same dimB (low), right has higher dimA
+                [1, 1, 2, 2, 2],
+                # Same dimB (low), left has higher dimA
+                [0, 2, 1, 2, 2],
+                # Same dimA (3.0), right has higher dimB
+                [1, 2, 2, 2, 1],
+                # Different dimA and dimB, right wins on both
+                [1, 1, 2, 2, 1],
+                # Different dimA and dimB, dimB vs dimA conflict
+                [0, 1, 2, 1, 2],
             ]
         ),
         columns=["Resp", *columns],
@@ -76,9 +104,9 @@ def scales_array_full(epsilon):
     """
     match epsilon:
         case 1e-14:
-            return np.array([[0, 0], [7.80, 7.80]])
+            return np.array([[0, 16.616466108594388], [-8.30664663681216, 8.211698785130059]])
         case 1e-4:
-            return np.array([[0, 0], [4.17, 4.17]])
+            return np.array([[0, 9.91], [-4.97, 4.86]])
         case _:
             raise ValueError("Invalid epsilon")
 
@@ -99,9 +127,9 @@ def scales_array_add(epsilon):
     """
     match epsilon:
         case 1e-14:
-            return np.array([[0, 0], [7.80, 0]])
+            return np.array([[0, 0], [-8.35971347787794, 16.57]])
         case 1e-4:
-            return np.array([[0, 0], [4.17, 0]])
+            return np.array([[0, 0], [-5.01, 9.87]])
         case _:
             raise ValueError("Invalid epsilon")
 
@@ -121,7 +149,7 @@ def scales_add(stim_levels, dim_names):
                 ],
                 name=dim_names[1],
             ),
-            pd.Series([0, 7.795727, 0, 7.795727], name="scale"),
+            pd.Series([0, -8.35971347787794, 0, -8.35971347787794], name="scale"),
         ],
         axis="columns",
     )
@@ -144,7 +172,7 @@ def scales_full(stim_levels, dim_names):
                 ],
                 name=dim_names[1],
             ),
-            pd.Series([0, 7.795727, 0, 7.795741], name="scale"),
+            pd.Series([0, -8.30664663681216, 16.616466108594388, 8.211698785130059], name="scale"),
         ],
         axis="columns",
     )
@@ -167,7 +195,7 @@ def scales_full_idc(stim_levels, dim_names):
                 ],
                 name=dim_names[1],
             ),
-            pd.Series([0, 7.795727, 0, 7.795741], name="scale"),
+            pd.Series([0, -8.30664663681216, 16.616466108594388, 8.211698785130059], name="scale"),
         ],
         axis="columns",
     )
@@ -190,7 +218,7 @@ def scales_add_idc(stim_levels, dim_names):
                 ],
                 name=dim_names[1],
             ),
-            pd.Series([0, 7.795727, 0, 7.795727], name="scale"),
+            pd.Series([0, -8.35971347787794, 0, -8.35971347787794], name="scale"),
         ],
         axis="columns",
     )

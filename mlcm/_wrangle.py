@@ -139,7 +139,7 @@ def unwrangle_responses(
 
     trial_responses = trial_responses.rename(columns=column_mapper)[[*column_mapper.values()]]
 
-    return trial_responses
+    return trial_responses.infer_objects()
 
 
 def unwrangle_scales(scales_idc, stim_levels, modeltype):
