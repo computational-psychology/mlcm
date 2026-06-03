@@ -1,3 +1,15 @@
+"""
+Defining fixtures for testing scale estimation.
+
+It contains:
+
+-  a 'mock' toy dataset of two dimensions, two levels per dimension, and 7 trials.
+- the expected scale output for this toy dataset, for all mlcm models 
+(independent, additive and full).
+
+Fixtures are used by test_wranging.py and test_scale_estimation.py
+"""
+
 import numpy as np
 import pandas as pd
 import pytest
