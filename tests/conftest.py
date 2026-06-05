@@ -4,7 +4,7 @@ Defining fixtures for testing scale estimation.
 It contains:
 
 -  a 'mock' toy dataset of two dimensions, two levels per dimension, and 7 trials.
-- the expected scale output for this toy dataset, for all mlcm models 
+- the expected scale output for this toy dataset, for all mlcm models
 (independent, additive and full).
 
 Fixtures are used by test_wranging.py and test_scale_estimation.py
@@ -158,6 +158,16 @@ def scales_add(stim_levels, dim_names):
 
 
 @pytest.fixture
+def scales_add_normalized(scales_add):
+    scales = scales_add
+    scales["scale"] = (scales["scale"] - np.min(scales["scale"])) / (
+        np.max(scales["scale"]) - np.min(scales["scale"])
+    )
+
+    return scales
+
+
+@pytest.fixture
 def scales_full(stim_levels, dim_names):
     scales = pd.concat(
         [
@@ -176,6 +186,16 @@ def scales_full(stim_levels, dim_names):
         ],
         axis="columns",
     )
+    return scales
+
+
+@pytest.fixture
+def scales_full_normalized(scales_full):
+    scales = scales_full
+    scales["scale"] = (scales["scale"] - np.min(scales["scale"])) / (
+        np.max(scales["scale"]) - np.min(scales["scale"])
+    )
+
     return scales
 
 
