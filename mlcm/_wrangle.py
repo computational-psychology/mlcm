@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from mlcm.utils import extract_stim_levels, first_diff_char
@@ -178,3 +179,96 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
     scales_natural = scales_natural.infer_objects()
 
     return scales_natural
+
+
+def reshape_bootstrap_samples(bootstrap_samples, stim_levels, modeltype):
+    """Reshape bootstrap samples from free-parameter layout to the pscale grid.
+
+    The _bootstrap function returns bootstrap samples as a
+    ``(n_free_params, nsim)`` array.  This function expands each sample into the
+    ``(n_levels_dim1, n_levels_dim2)`` pscale matrix, yielding a
+    ``(n_levels_dim1, n_levels_dim2, nsim)`` array.
+
+    For the **full** model the free parameters are a flattened grid (minus
+    the first zero at position ``[0, 0]``).
+
+    For the **add**\\ itive model the free parameters are per-dimension scales
+    concatenated: ``[dim1_free…, dim2_free…]``, placed in the first column
+    and first row of the grid respectively.
+
+    Parameters
+    ----------
+    bootstrap_samples : numpy.ndarray
+        ``(n_free_params, nsim)`` array of bootstrap samples.
+    stim_levels : dict[str, array-like]
+        Stimulus levels per dimension.
+    modeltype : ``'add'`` | ``'full'``
+        Model type.
+
+    Returns
+    -------
+    numpy.ndarray
+        ``(n_levels_dim1, n_levels_dim2, nsim)`` array.
+    """
+    n_levels = [len(v) for v in stim_levels.values()]
+    nsim = bootstrap_samples.shape[1]
+
+    if modeltype == "add":
+        n_free = [n - 1 for n in n_levels]
+        grid = np.zeros((*n_levels, nsim))
+        grid[1:, 0, :] = bootstrap_samples[: n_free[0], :]  # dim1 free → first column
+        grid[0, 1:, :] = bootstrap_samples[n_free[0] :, :]  # dim2 free → first row
+    else:
+        # Insert the fixed-zero first parameter, then reshape
+        samples = np.vstack([np.zeros((1, nsim)), bootstrap_samples])  # (n_free+1, nsim)
+        shape = list(reversed(n_levels))  # (n_levels_dim2, n_levels_dim1)
+        grid = samples.reshape(*shape, nsim).transpose(1, 0, 2)  # → (dim1, dim2, nsim)
+
+    return grid
+
+
+def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, alpha=0.05):
+    """Compute confidence intervals from bootstrap samples.
+
+    Parameters
+    ----------
+    bootstrap_samples : numpy.ndarray
+        ``(n_free_params, nsim)`` array of bootstrap samples, as returned by
+        :func:`_bootstrap`.
+    stim_levels : dict[str, array-like]
+        Stimulus levels per dimension.
+    modeltype : ``'add'`` | ``'full'``
+        Model type.
+    alpha : float, optional
+        Significance level, by default 0.05.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with columns for each stimulus dimension and the lower/upper
+        CI bounds.
+    """
+    boundary = alpha / 2
+
+    # Reshape to pscale grid: (n_levels_dim1, n_levels_dim2, nsim)
+    grid = reshape_bootstrap_samples(bootstrap_samples, stim_levels, modeltype)
+
+    # Quantiles over bootstrap axis → (n_levels_dim1, n_levels_dim2)
+    ci_lowers = np.quantile(grid, boundary, axis=-1)
+    ci_uppers = np.quantile(grid, 1 - boundary, axis=-1)
+
+    ci_lowers = unwrangle_scales(
+        scales_idc=ci_lowers,
+        stim_levels=stim_levels,
+        modeltype=modeltype,
+    ).rename(columns={"scale": f"CI_{boundary:.3f}"})
+    ci_uppers = unwrangle_scales(
+        scales_idc=ci_uppers,
+        stim_levels=stim_levels,
+        modeltype=modeltype,
+    ).rename(columns={"scale": f"CI_{(1 - boundary):.3f}"})
+
+    # Concat
+    ci = pd.merge(ci_lowers, ci_uppers, on=list(stim_levels.keys()))
+
+    return ci

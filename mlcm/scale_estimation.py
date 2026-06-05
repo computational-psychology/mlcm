@@ -6,7 +6,7 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 
-from mlcm._wrangle import unwrangle_scales, wrangle_responses
+from mlcm._wrangle import CIs_from_bootstrap, unwrangle_scales, wrangle_responses
 from mlcm.utils import extract_stim_levels
 
 importr("MLCM")
@@ -96,7 +96,20 @@ def compare_models():
     return modeltype
 
 
-def bootstrap_confidence(): ...
+def _bootstrap(scale_obj, nsim):
+    """Bootstrap the scale estimates, using the {{MLCM}} R package.
+
+    The R ``boot.mlcm`` function returns bootstrap samples as a
+    ``(n_free_params, nsim)`` array.
+    These can expanded into the ``(n_levels_dim1, n_levels_dim2, nsim)`` pscale grid using the
+    `reshape_bootstrap_samples` function.
+
+    """
+    r_bootmlcm = robjects.r["boot.mlcm"]
+    res = r_bootmlcm(scale_obj, nsim=nsim)
+    samples = np.array(res.rx2("boot.samp"))
+
+    return samples
 
 
 def remove_outliers(): ...
@@ -114,6 +127,8 @@ def scale_estimation(
     modeltype="add",
     method="glm.fit",
     epsilon=1e-14,
+    bootstrap_nsim=1000,
+    ci_alpha=0.05,
     **options,
 ):
     # Check / set options
@@ -157,10 +172,14 @@ def scale_estimation(
     point_estimate = np.array(r_scale_obj.rx2("pscale"))
 
     # OPTIONALLY: Confidence Intervals
-    # - bootstrap
-    # - calculate CIs
-    # - re-reindex CIs
-    ...
+    if bootstrap_nsim:
+        bootstrap_samples = _bootstrap(r_scale_obj, nsim=bootstrap_nsim)
+        CIs = CIs_from_bootstrap(
+            bootstrap_samples=bootstrap_samples,
+            stim_levels=stim_levels,
+            modeltype=modeltype,
+            alpha=ci_alpha,
+        )
 
     # Housekeeping: package output
     result = {}
@@ -170,7 +189,9 @@ def scale_estimation(
     result["point_estimate"] = point_estimate
     result["sigma"] = r_scale_obj.rx2("sigma")[0]
 
-    # TODO: output CIs, optionally
+    # Output CIs, optionally
+    if CIs is not None:
+        result["CIs"] = CIs
 
     # Document options
     result["modeltype"] = r_scale_obj.rx2("model")[0]
