@@ -96,7 +96,7 @@ def compare_models():
     return modeltype
 
 
-def _bootstrap(scale_obj, nsim):
+def _bootstrap(scale_obj, nsim, seed=None):
     """Bootstrap the scale estimates, using the {{MLCM}} R package.
 
     The R ``boot.mlcm`` function returns bootstrap samples as a
@@ -106,6 +106,8 @@ def _bootstrap(scale_obj, nsim):
 
     """
     r_bootmlcm = robjects.r["boot.mlcm"]
+    if seed:
+        robjects.r["set.seed"](seed)
     res = r_bootmlcm(scale_obj, nsim=nsim)
     samples = np.array(res.rx2("boot.samp"))
 
@@ -129,6 +131,7 @@ def scale_estimation(
     epsilon=1e-14,
     bootstrap_nsim=1000,
     ci_alpha=0.05,
+    seed=None,
     **options,
 ):
     # Check / set options
@@ -173,7 +176,7 @@ def scale_estimation(
 
     # OPTIONALLY: Confidence Intervals
     if bootstrap_nsim:
-        bootstrap_samples = _bootstrap(r_scale_obj, nsim=bootstrap_nsim)
+        bootstrap_samples = _bootstrap(r_scale_obj, nsim=bootstrap_nsim, seed=seed)
         CIs = CIs_from_bootstrap(
             bootstrap_samples=bootstrap_samples,
             stim_levels=stim_levels,
