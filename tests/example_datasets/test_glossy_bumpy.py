@@ -65,18 +65,24 @@ def test_scale_estimation_full_model(trials, scales_full):
         modeltype="full",
         dim_names=DIM_NAMES,
         pair_names=PAIR_NAMES,
+        bootstrap_nsim=1000,
+        seed=123,
     )
 
     # Check that scales have correct shape (5 levels × 5 levels = 25 combinations)"""
     assert result["scales"].shape == (25, 3)
+    assert result["CIs"].shape == (25, 4)
+
+    # Merge
+    scales = pd.merge(result["scales"], result["CIs"], on=["glossiness", "bumpiness"])
+    scales.rename(columns={"CI_0.025": "CI_low", "CI_0.975": "CI_high"}, inplace=True)
 
     # Test that scales have correct columns
-    expected_columns = ["glossiness", "bumpiness", "scale"]
-    assert list(scales_full.columns) == expected_columns
+    assert list(scales.columns) == list(scales_full.columns)
 
     # Check that scales match expected values (with tolerance for floating point)
     pd.testing.assert_frame_equal(
-        result["scales"],
+        scales,
         scales_full,
         atol=1e-5,
     )
