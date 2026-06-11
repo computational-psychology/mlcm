@@ -32,40 +32,12 @@ def wrangled(trials):
 def scales_full():
     """Expected scales for BumpyGlossy dataset with full model
 
-    These values are produced by the R {{MLCM}} package, running
-    ```
-    mlcm(BumpyGlossy, modeltype="full")
-    ```
+    These values are produced by the R {{MLCM}} package,
+    running the R code in `tests/example_datasets/test_GlossyBumpy.R`.
+
     They should remain stable across changes, thus form regression testing.
     """
-    scales_data = [
-        (1, 1, 0.000000),
-        (2, 1, 1.201542),
-        (3, 1, 1.116909),
-        (4, 1, 1.960073),
-        (5, 1, 1.728852),
-        (1, 2, 2.926971),
-        (2, 2, 2.951799),
-        (3, 2, 3.117224),
-        (4, 2, 3.446865),
-        (5, 2, 3.210776),
-        (1, 3, 4.303391),
-        (2, 3, 4.069461),
-        (3, 3, 4.449477),
-        (4, 3, 4.333013),
-        (5, 3, 4.820267),
-        (1, 4, 5.579857),
-        (2, 4, 5.551860),
-        (3, 4, 5.504941),
-        (4, 4, 5.931481),
-        (5, 4, 6.078623),
-        (1, 5, 6.331301),
-        (2, 5, 6.731333),
-        (3, 5, 6.520746),
-        (4, 5, 6.884271),
-        (5, 5, 7.250571),
-    ]
-    return pd.DataFrame(scales_data, columns=["glossiness", "bumpiness", "scale"])
+    return pd.read_csv(Path(__file__).parent / "scales_BumpyGlossy.csv")
 
 
 def test_wrangle(trials, wrangled):
