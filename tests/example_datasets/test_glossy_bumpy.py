@@ -32,40 +32,12 @@ def wrangled(trials):
 def scales_full():
     """Expected scales for GlossyBumpy dataset with full model
 
-    These values are produced by the R {{MLCM}} package, running
-    ```
-    mlcm(GlossyBumpy, modeltype="full")
-    ```
+    These values are produced by the R {{MLCM}} package
+    running the R code in `tests/example_datasets/test_GlossyBumpy.R`.
+
     They should remain stable across changes, thus form regression testing.
     """
-    scales_data = [
-        (1, 1, 0.000000),
-        (2, 1, -0.327530),
-        (3, 1, 1.301358),
-        (4, 1, 3.254507),
-        (5, 1, 3.513034),
-        (1, 2, 0.773183),
-        (2, 2, 0.586811),
-        (3, 2, 1.930494),
-        (4, 2, 4.097627),
-        (5, 2, 5.222958),
-        (1, 3, 0.819287),
-        (2, 3, 0.746685),
-        (3, 3, 2.577413),
-        (4, 3, 4.279270),
-        (5, 3, 5.771482),
-        (1, 4, 0.815532),
-        (2, 4, 1.361006),
-        (3, 4, 3.057501),
-        (4, 4, 4.991377),
-        (5, 4, 5.228731),
-        (1, 5, 1.253929),
-        (2, 5, 1.252005),
-        (3, 5, 3.106025),
-        (4, 5, 4.039719),
-        (5, 5, 5.181385),
-    ]
-    return pd.DataFrame(scales_data, columns=["glossiness", "bumpiness", "scale"])
+    return pd.read_csv(Path(__file__).parent / "scales_GlossyBumpy.csv")
 
 
 def test_wrangle(trials, wrangled):
@@ -93,18 +65,24 @@ def test_scale_estimation_full_model(trials, scales_full):
         modeltype="full",
         dim_names=DIM_NAMES,
         pair_names=PAIR_NAMES,
+        bootstrap_nsim=1000,
+        seed=123,
     )
 
     # Check that scales have correct shape (5 levels × 5 levels = 25 combinations)"""
     assert result["scales"].shape == (25, 3)
+    assert result["CIs"].shape == (25, 4)
+
+    # Merge
+    scales = pd.merge(result["scales"], result["CIs"], on=["glossiness", "bumpiness"])
+    scales.rename(columns={"CI_0.025": "CI_low", "CI_0.975": "CI_high"}, inplace=True)
 
     # Test that scales have correct columns
-    expected_columns = ["glossiness", "bumpiness", "scale"]
-    assert list(scales_full.columns) == expected_columns
+    assert list(scales.columns) == list(scales_full.columns)
 
     # Check that scales match expected values (with tolerance for floating point)
     pd.testing.assert_frame_equal(
-        result["scales"],
+        scales,
         scales_full,
         atol=1e-5,
     )
