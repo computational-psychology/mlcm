@@ -53,3 +53,14 @@ write.csv(
   row.names = FALSE,
   quote = FALSE
 )
+
+
+# Normalize the scales to 0-1 range
+scales_long$scale_norm <- scales_long$scale / max(scales_long$scale)
+
+write.csv(
+  scales_long,
+  "tests/example_datasets/scales_BumpyGlossy.csv",
+  row.names = FALSE,
+  quote = FALSE
+)
