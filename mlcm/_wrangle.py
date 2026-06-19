@@ -263,7 +263,7 @@ def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, normalized=Fal
     # Reshape to pscale grid: (n_levels_dim1, n_levels_dim2, nsim)
     grid = reshape_bootstrap_samples(bootstrap_samples, stim_levels, modeltype)
 
-    # Optinally: normalize
+    # Optinoally: normalize
     if normalized:
         grid = (grid - np.min(grid, axis=(0, 1))) / (
             np.max(grid, axis=(0, 1)) - np.min(grid, axis=(0, 1))
