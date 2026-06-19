@@ -143,7 +143,7 @@ def unwrangle_responses(
     return trial_responses.infer_objects()
 
 
-def unwrangle_scales(scales_idc, stim_levels, modeltype):
+def unwrangle_scales(scales_idc, stim_levels, modeltype, normalized=False):
     """Unwrangle scales from the {{MLCM}} R package to a more human-readable format
 
     Parameters
@@ -154,6 +154,8 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
         dictionary mapping stimulus dimension names to lists of unique levels.
     modeltype : str
         model type, either 'add' or 'full'
+    normalized : bool, optional
+        whether the scales are normalized to [0, 1], by default False
 
     Returns
     -------
@@ -177,6 +179,12 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
     scales_natural = scales_natural.melt(id_vars=row_dim, value_name="scale")
 
     scales_natural = scales_natural.infer_objects()
+
+    # Optionally: normalize to [0, 1]
+    if normalized:
+        scales_natural["scale"] = (scales_natural["scale"] - np.min(scales_natural["scale"])) / (
+            np.max(scales_natural["scale"]) - np.min(scales_natural["scale"])
+        )
 
     return scales_natural
 
