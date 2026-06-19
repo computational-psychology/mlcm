@@ -42,9 +42,11 @@ def scales_full(normalize=False):
     if normalize:
         # Keep and rename normalized column
         df["scale"] = df["scale_norm"]
+        df["CI_low"] = df["CI_low_norm"]
+        df["CI_high"] = df["CI_high_norm"]
     else:
-        # Drop normalized column
-        df.drop(columns=["scale_norm"], inplace=True)
+        # Drop normalized columns
+        df.drop(columns=["scale_norm", "CI_low_norm", "CI_high_norm"], inplace=True)
     return df
 
 
