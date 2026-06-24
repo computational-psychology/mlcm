@@ -29,7 +29,7 @@ def wrangled(trials):
 
 
 @pytest.fixture
-def scales_full():
+def scales_full(normalize=False):
     """Expected scales for BumpyGlossy dataset with full model
 
     These values are produced by the R {{MLCM}} package,
@@ -37,7 +37,15 @@ def scales_full():
 
     They should remain stable across changes, thus form regression testing.
     """
-    return pd.read_csv(Path(__file__).parent / "scales_BumpyGlossy.csv")
+    df = pd.read_csv(Path(__file__).parent / "scales_BumpyGlossy.csv")
+
+    if normalize:
+        # Keep and rename normalized column
+        df["scale"] = df["scale_norm"]
+    else:
+        # Drop normalized columns
+        df.drop(columns=["scale_norm", "CI_low_norm", "CI_high_norm"], inplace=True)
+    return df
 
 
 def test_wrangle(trials, wrangled):
@@ -54,7 +62,8 @@ def test_wrangle(trials, wrangled):
     pd.testing.assert_frame_equal(result, wrangled)
 
 
-def test_scale_estimation_full_model(trials, scales_full):
+@pytest.mark.parametrize("normalize", [False, True])
+def test_scale_estimation_full_model(trials, scales_full, normalize):
     """Test that scale estimation with full model produces expected results
 
     This is a regression test - the expected values come from running the

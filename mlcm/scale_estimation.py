@@ -127,6 +127,7 @@ def scale_estimation(
     stim_levels=None,
     response_col="response",
     modeltype="add",
+    normalized=False,
     method="glm.fit",
     epsilon=1e-14,
     bootstrap_nsim=1000,
@@ -181,13 +182,17 @@ def scale_estimation(
             bootstrap_samples=bootstrap_samples,
             stim_levels=stim_levels,
             modeltype=modeltype,
+            normalized=normalized,
             alpha=ci_alpha,
         )
 
     # Housekeeping: package output
     result = {}
     result["scales"] = unwrangle_scales(
-        scales_idc=point_estimate, stim_levels=stim_levels, modeltype=modeltype
+        scales_idc=point_estimate,
+        stim_levels=stim_levels,
+        modeltype=modeltype,
+        normalized=normalized,
     )
     result["point_estimate"] = point_estimate
     result["sigma"] = r_scale_obj.rx2("sigma")[0]
@@ -201,5 +206,6 @@ def scale_estimation(
     result["method"] = r_scale_obj.rx2("method")[0]
     result["link_function"] = r_scale_obj.rx2("link")[0]
     result["epsilon"] = epsilon
+    result["normalized"] = normalized
 
     return result

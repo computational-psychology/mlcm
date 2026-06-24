@@ -143,7 +143,7 @@ def unwrangle_responses(
     return trial_responses.infer_objects()
 
 
-def unwrangle_scales(scales_idc, stim_levels, modeltype):
+def unwrangle_scales(scales_idc, stim_levels, modeltype, normalized=False):
     """Unwrangle scales from the {{MLCM}} R package to a more human-readable format
 
     Parameters
@@ -154,6 +154,8 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
         dictionary mapping stimulus dimension names to lists of unique levels.
     modeltype : str
         model type, either 'add' or 'full'
+    normalized : bool, optional
+        whether the scales are normalized to [0, 1], by default False
 
     Returns
     -------
@@ -177,6 +179,12 @@ def unwrangle_scales(scales_idc, stim_levels, modeltype):
     scales_natural = scales_natural.melt(id_vars=row_dim, value_name="scale")
 
     scales_natural = scales_natural.infer_objects()
+
+    # Optionally: normalize to [0, 1]
+    if normalized:
+        scales_natural["scale"] = (scales_natural["scale"] - np.min(scales_natural["scale"])) / (
+            np.max(scales_natural["scale"]) - np.min(scales_natural["scale"])
+        )
 
     return scales_natural
 
@@ -227,7 +235,7 @@ def reshape_bootstrap_samples(bootstrap_samples, stim_levels, modeltype):
     return grid
 
 
-def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, alpha=0.05):
+def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, normalized=False, alpha=0.05):
     """Compute confidence intervals from bootstrap samples.
 
     Parameters
@@ -239,6 +247,8 @@ def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, alpha=0.05):
         Stimulus levels per dimension.
     modeltype : ``'add'`` | ``'full'``
         Model type.
+    normalized : bool, optional
+        Whether to normalize the scales to [0, 1], by default False.
     alpha : float, optional
         Significance level, by default 0.05.
 
@@ -252,6 +262,12 @@ def CIs_from_bootstrap(bootstrap_samples, stim_levels, modeltype, alpha=0.05):
 
     # Reshape to pscale grid: (n_levels_dim1, n_levels_dim2, nsim)
     grid = reshape_bootstrap_samples(bootstrap_samples, stim_levels, modeltype)
+
+    # Optinoally: normalize
+    if normalized:
+        grid = (grid - np.min(grid, axis=(0, 1))) / (
+            np.max(grid, axis=(0, 1)) - np.min(grid, axis=(0, 1))
+        )
 
     # Quantiles over bootstrap axis → (n_levels_dim1, n_levels_dim2)
     ci_lowers = np.quantile(grid, boundary, axis=-1)

@@ -53,3 +53,26 @@ write.csv(
   row.names = FALSE,
   quote = FALSE
 )
+
+
+# Normalize the scales to 0-1 range
+scales_long$scale_norm <- scales_long$scale / max(scales_long$scale)
+
+# CIs for normalized scales
+samples_norm <- apply(samples, 2, function(smpl) smpl / max(smpl))
+
+bootstrap$CI_low_norm <- c(0, apply(samples_norm, 1, quantile, probs = 0.025))
+bootstrap$CI_high_norm <- c(0, apply(samples_norm, 1, quantile, probs = 0.975))
+
+dim(bootstrap$CI_low_norm) <- dim(model$pscale)
+dim(bootstrap$CI_high_norm) <- dim(model$pscale)
+
+scales_long$CI_low_norm <- as.vector(t(bootstrap$CI_low_norm))
+scales_long$CI_high_norm <- as.vector(t(bootstrap$CI_high_norm))
+
+write.csv(
+  scales_long,
+  "tests/example_datasets/scales_GlossyBumpy.csv",
+  row.names = FALSE,
+  quote = FALSE
+)

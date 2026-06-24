@@ -6,13 +6,15 @@ from mlcm import scale_estimation
 
 
 @pytest.mark.parametrize(
-    "trials,modeltype,expected",
+    "trials,modeltype,normalized,expected",
     [
-        ("trial_responses", "add", "scales_add"),
-        ("trial_responses", "full", "scales_full"),
+        ("trial_responses", "add", False, "scales_add"),
+        ("trial_responses", "full", False, "scales_full"),
+        ("trial_responses", "add", True, "scales_add_normalized"),
+        ("trial_responses", "full", True, "scales_full_normalized"),
     ],
 )
-def test_integration(trials, pair_names, dim_names, modeltype, expected, request):
+def test_integration(trials, pair_names, dim_names, modeltype, normalized, expected, request):
     trial_responses = request.getfixturevalue(trials)
     expected_scales = request.getfixturevalue(expected)
 
@@ -21,6 +23,7 @@ def test_integration(trials, pair_names, dim_names, modeltype, expected, request
         pair_names=pair_names,
         dim_names=dim_names,
         modeltype=modeltype,
+        normalized=normalized,
     )
 
     pd.testing.assert_frame_equal(result["scales"], expected_scales)
